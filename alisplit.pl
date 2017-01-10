@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-07 21:19:33 mtw>
+# Last changed Time-stamp: <2017-01-10 08:23:01 mtw>
 # -*-CPerl-*-
 
 use AlignSplit;
@@ -22,6 +22,7 @@ my $AlignSplitObject = AlignSplit->new(file => $alnfile,
     );
 
 #print Dumper($AlignSplitObject);
+$AlignSplitObject->sci();
 
 my $aln = $AlignSplitObject->alignment->next_aln();
 

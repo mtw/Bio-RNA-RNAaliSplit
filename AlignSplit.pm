@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2016-12-31 22:42:05 mtw>
+# Last changed Time-stamp: <2017-01-10 10:09:33 mtw>
 package AlignSplit;
 
 use version; our $VERSION = qv('0.01');
@@ -8,6 +8,7 @@ use Data::Dumper;
 use Moose;
 use Moose::Util::TypeConstraints;
 use Path::Class::File;
+use IPC::Cmd qw(can_run run);
 use Bio::AlignIO;
 
 subtype 'MyAln' => as class_type('Bio::AlignIO');
@@ -26,7 +27,6 @@ has 'file' => (
     is => 'ro',
     isa => 'MyFile',
     predicate => 'has_file',
- #   required => 1,
     coerce => 1,
     );
 
@@ -61,7 +61,15 @@ has 'ext' => (
     is => 'rw',
     isa => 'Str',
     predicate => 'has_ext',
-    );
+	     );
+
+has 'sci' => (
+	      is => 'rw',
+	      isa => 'Num',
+	      predicate => 'has_sci',
+	      builder => '_compute_sci',
+	      lazy => 1, # required to make sure $self->file is available
+	      );
 
 
 sub BUILD {
@@ -81,6 +89,33 @@ sub BUILD {
   #  $self->basename($x);
   #  $self->path($y);
   #  $self->ext($z);
+  }
+
+sub _compute_sci {
+  my $self = shift;
+  my $this_function = (caller(0))[3];
+  my $sci = 0.0;
+  my $f;
+  my $alifold = can_run('RNAalifold') or
+    croak " ERROR [$this_function] RNAalifold not found";
+ # carp "[$this_function]: $alifold";
+
+  $f = $self->file->stringify;
+  my $cmd = "$alifold --sci $f";
+
+  my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
+    run( command => $cmd, verbose => 0 );
+  if( !$success ) {
+    print STDERR "ERROR [$this_function] Call to $alifold unsuccessful\n";
+    print STDERR "ERROR: this is what the command printed:\n";
+    print join "", @$full_buf;
+    croak $!;
+  }
+  my @aliout = split '\n', $$stdout_buf[0];
+  print Dumper(@aliout);
+  print ">>$aliout<<\n";
+  print Dumper($full_buf);
+  return $sci
 }
 
 
