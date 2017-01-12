@@ -1,5 +1,10 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-11 19:58:32 mtw>
+# Last changed Time-stamp: <2017-01-12 14:38:44 mtw>
+
+# AlignSplit.pm: Handler for horizontally splitting alignments
+#
+# requires RNAalifold executable available to the perl interpreter
+
 package AlignSplit;
 
 use version; our $VERSION = qv('0.01');
@@ -10,6 +15,7 @@ use Moose::Util::TypeConstraints;
 use Path::Class::File;
 use Path::Class::Dir;
 use Path::Class;
+use File::Basename;
 use IPC::Cmd qw(can_run run);
 use Bio::AlignIO;
 
@@ -43,8 +49,15 @@ has 'format' => (
 		 isa => 'Str',
 		 predicate => 'has_format',
 		 default => 'ClustalW',
-		 required => 0,
+		 required => 1,
 		);
+
+has 'infilebasename' => (
+			 is => 'rw',
+			 isa => 'Str',
+			 predicate => 'has_basename',
+			 init_arg => undef, # make this unsettable via constructor
+			);
 
 has 'alignment' => (
 		    is => 'rw',
@@ -111,31 +124,36 @@ has 'consensus_covar_terms' => (
 sub BUILD {
     my $self = shift;
     my $this_function = (caller(0))[3];
-    my $odir;
     confess "ERROR [$this_function] \$self->infile not available"
 	unless ($self->has_infile);
-    $self->alignment({
-		      -file => $self->infile,
+    $self->alignment({-file => $self->infile,
 		      -format => $self->format});
     $self->next_aln($self->alignment->next_aln);
-    $self->odir( [$self->infile->dir,$self->odirname ] );
+    $self->odir( [$self->infile->dir,$self->odirname] );
     mkdir($self->odir);
-    if ($self->has_dump_flag){ # dump input to odir/input
+    $self->infilebasename(fileparse($self->infile->basename, qr/\.[^.]*/));
+
+    if ($self->has_dump_flag){
+      # dump infile as aln in ClustalW format to odir/input
       my $iodir = $self->odir->subdir('input');
       mkdir($iodir);
-      _dump_infile_as_aln($self,$iodir);
-   #   dump_infile_as_seq($iodir);
-      print "HAS DUMP FLAG\n";
+      my $ialnfile = file($iodir,$self->infilebasename.".aln");
+      my $alnio = Bio::AlignIO->new(-file   => ">$ialnfile",
+				    -format => "ClustalW",
+				    -flush  => 0 );
+      my $aln2 = $self->next_aln->select_noncont((1..$self->next_aln->num_sequences));
+      $alnio->write_aln($aln2);
+      # end dump input aln file
     }
+    #   dump_infile_as_seq($iodir);
     $self->_alifold();
   }
 
 sub dump_subalignment {
-  # TODO receive array indicating which sequences to dump into subalignment
   my ($self,$alipathsegment,$alinr) = @_;
   my $this_function = (caller(0))[3];
 
-  # create subalignment output path and file
+  # create subalignment output path
   my $ids = join "_", @$alinr;
   unless (defined($alipathsegment)){$alipathsegment = "tmp"}
   my $oodir = $self->odir->subdir($alipathsegment);
@@ -143,15 +161,23 @@ sub dump_subalignment {
   my $oalifile = file($oodir,$ids.".aln");
   $oalifile->touch;
 
+  # create subalignment .aln file
   my $outali = Bio::AlignIO->new(-file   => ">$oalifile",
-#				 -fh => \*STDOUT, 
+  				 #-fh => \*STDOUT,
 				 -format => "ClustalW",
 				 -flush  => 0 ); # go as fast as we can!
-  #  print Dumper($outali);
-
   my $aln2 = $self->next_aln->select_noncont(@$alinr);
-#  print Dumper($aln2);
   $outali->write_aln( $aln2 );
+
+  # extract sequences from alignment and dump to .seq file
+  my $oseqfile = file($oodir,$ids.".seq");
+  $oseqfile->touch;
+  open my $seqfile, ">", $oseqfile or die $!;
+  foreach my $seq ($aln2->each_seq) {
+    print $seqfile $seq->seq,"\n";
+  }
+  close($seqfile);
+
   return ( $oalifile );
 }
 
@@ -184,17 +210,6 @@ sub _alifold {
   $self->consensus_energy($3);
   $self->consensus_covar_terms($4);
   $self->sci($5);
-}
-
-
-sub _dump_infile_as_aln {
-  my ($self,$dir) = @_;
-  my $this_function = (caller(0))[3];
-  print ref($self);
-  #  print Dumper($self->next_aln);
-  #foreach my $seq ($self->next_aln->each_seq) {
-  #  print ">> $seq->seq\n";
-  #}
 }
 
 no Moose;

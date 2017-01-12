@@ -1,10 +1,11 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-11 19:30:45 mtw>
+# Last changed Time-stamp: <2017-01-12 14:05:49 mtw>
 # -*-CPerl-*-
+#
+# usage: alisplit.pl myfile.{aln,stk}
 
 use AlignSplit;
 use Data::Dumper;
-use File::Basename;
 
 my $alnfile = "./result.aln";
 my $stkfile = "./ZIKV_SL1.stk";
@@ -20,6 +21,7 @@ my $AlignSplitObject = AlignSplit->new(infile => $stkfile,
 				       dump => 1);
 
 #print Dumper($AlignSplitObject);
+#die;
 
 # extract all pairwise alignments
 my $dim = $AlignSplitObject->next_aln->num_sequences;
@@ -44,8 +46,8 @@ foreach my $ali (@pw_alns){
   print "processing $ali ...\n";
   my $pw_aso = AlignSplit->new(infile => $ali,
 			       format => "ClustalW");
-  my $bn = basename($pw_aso->infile->basename, ".aln");
-  my ($i,$j) = sort split /_/,$bn;
+#  my $bn = basename($pw_aso->infile->basename, ".aln");
+  my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
   if($pw_aso->sci > 1){$sci = 1}
   elsif ($pw_aso->sci == 0.){$sci = 0.000001}
