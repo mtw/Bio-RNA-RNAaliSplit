@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-12 14:38:44 mtw>
+# Last changed Time-stamp: <2017-01-13 11:42:10 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -125,9 +125,10 @@ sub BUILD {
     my $self = shift;
     my $this_function = (caller(0))[3];
     confess "ERROR [$this_function] \$self->infile not available"
-	unless ($self->has_infile);
+      unless ($self->has_infile);
     $self->alignment({-file => $self->infile,
-		      -format => $self->format});
+		      -format => $self->format,
+		      -displayname_flat => 1} );
     $self->next_aln($self->alignment->next_aln);
     $self->odir( [$self->infile->dir,$self->odirname] );
     mkdir($self->odir);
@@ -140,7 +141,8 @@ sub BUILD {
       my $ialnfile = file($iodir,$self->infilebasename.".aln");
       my $alnio = Bio::AlignIO->new(-file   => ">$ialnfile",
 				    -format => "ClustalW",
-				    -flush  => 0 );
+				    -flush  => 0,
+				    -displayname_flat => 1 );
       my $aln2 = $self->next_aln->select_noncont((1..$self->next_aln->num_sequences));
       $alnio->write_aln($aln2);
       # end dump input aln file
@@ -152,28 +154,41 @@ sub BUILD {
 sub dump_subalignment {
   my ($self,$alipathsegment,$alinr) = @_;
   my $this_function = (caller(0))[3];
-
-  # create subalignment output path
+  my ($aln,$aln2);
+  # create output path
   my $ids = join "_", @$alinr;
   unless (defined($alipathsegment)){$alipathsegment = "tmp"}
   my $oodir = $self->odir->subdir($alipathsegment);
   mkdir($oodir);
-  my $oalifile = file($oodir,$ids.".aln");
-  $oalifile->touch;
 
   # create subalignment .aln file
-  my $outali = Bio::AlignIO->new(-file   => ">$oalifile",
-  				 #-fh => \*STDOUT,
-				 -format => "ClustalW",
-				 -flush  => 0 ); # go as fast as we can!
-  my $aln2 = $self->next_aln->select_noncont(@$alinr);
-  $outali->write_aln( $aln2 );
+  my $oalifile = file($oodir,$ids.".aln");
+  my $oali = Bio::AlignIO->new(-file   => ">$oalifile",
+			       -format => "ClustalW",
+			       -flush  => 0,
+			       -displayname_flat =>  );
+  $aln = $self->next_aln->select_noncont(@$alinr);
+  $oali->write_aln( $aln );
+
+print Dumper($aln);
+
+  # create subalignment fasta file
+  my $ofafile = file($oodir,$ids.".fa");
+#  my $ofa = Bio::AlignIO->new(-file   => ">$ofafile",
+#			      -format => "fasta",
+#			      -flush  => 0 );
+#  $aln = $self->next_aln->remove_gaps();
+#  $aln2 = $aln->remove_gaps;
+#  print Dumper($aln);
+#  print Dumper($aln2);
+#  $ofa->write_aln( $aln );
 
   # extract sequences from alignment and dump to .seq file
   my $oseqfile = file($oodir,$ids.".seq");
-  $oseqfile->touch;
   open my $seqfile, ">", $oseqfile or die $!;
-  foreach my $seq ($aln2->each_seq) {
+  foreach my $seq ($aln->each_seq) {
+ #   print Dumper($seq);
+ #   print "**".ref($aln)."** "." >>".$seq->id."\t".$seq->seq."\n";
     print $seqfile $seq->seq,"\n";
   }
   close($seqfile);

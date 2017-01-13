@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-12 14:05:49 mtw>
+# Last changed Time-stamp: <2017-01-13 11:50:08 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl myfile.{aln,stk}
@@ -8,15 +8,16 @@ use AlignSplit;
 use Data::Dumper;
 
 my $alnfile = "./result.aln";
-my $stkfile = "./ZIKV_SL1.stk";
+my $format = "ClustalW";
+# Display ID handling in Bio::AlignIO is broken for Stockholm format
+# use ClustalW format instead !!!
 
-my $format = "Stockholm";
 my @nseqs=();
 my ($i,$j,$dim);
 my @pw_alns = ();
 my @D = ();
 
-my $AlignSplitObject = AlignSplit->new(infile => $stkfile,
+my $AlignSplitObject = AlignSplit->new(infile => $alnfile,
 				       format => $format,
 				       dump => 1);
 
