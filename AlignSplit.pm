@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-13 11:42:10 mtw>
+# Last changed Time-stamp: <2017-01-13 20:32:23 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -18,6 +18,7 @@ use Path::Class;
 use File::Basename;
 use IPC::Cmd qw(can_run run);
 use Bio::AlignIO;
+use Storable 'dclone';
 
 subtype 'MyAln' => as class_type('Bio::AlignIO');
 
@@ -38,10 +39,11 @@ coerce 'MyDir'
   => via { Path::Class::Dir->new( @{ $_ } ) };
 
 has 'infile' => (
-	       is => 'ro',
-	       isa => 'MyFile',
-	       predicate => 'has_infile',
-	       coerce => 1,
+		 is => 'ro',
+		 isa => 'MyFile',
+		 predicate => 'has_infile',
+		 coerce => 1,
+		 required => 1,
 	      );
 
 has 'format' => ( 
@@ -84,6 +86,7 @@ has 'odir' => (
 	       isa => 'MyDir',
 	       predicate => 'has_odir',
 	       coerce => 1,
+	       init_arg => undef, # make this unsettable via constructor
 	      );
 
 has 'dump' => (
@@ -97,6 +100,20 @@ has 'sci' => (
 	      isa => 'Num',
 	      predicate => 'has_sci',
 	     );
+
+has 'hammingdistN' => (
+		       is => 'rw',
+		       isa => 'Num',
+		       default => '-1',
+		       predicate => 'has_hammingN',
+		      );
+
+has 'hammingdistX' => (
+		       is => 'rw',
+		       isa => 'Num',
+		       default => '-1',
+		       predicate => 'has_hammingX',
+		      );
 
 has 'consensus_struc' => (
 			  is => 'rw',
@@ -128,7 +145,7 @@ sub BUILD {
       unless ($self->has_infile);
     $self->alignment({-file => $self->infile,
 		      -format => $self->format,
-		      -displayname_flat => 1} );
+		      -displayname_flat => 1} ); # discard position in sequence IDs
     $self->next_aln($self->alignment->next_aln);
     $self->odir( [$self->infile->dir,$self->odirname] );
     mkdir($self->odir);
@@ -147,8 +164,11 @@ sub BUILD {
       $alnio->write_aln($aln2);
       # end dump input aln file
     }
-    #   dump_infile_as_seq($iodir);
+
+    if ($self->next_aln->num_sequences == 2){ $self->_hamming() }
+
     $self->_alifold();
+   
   }
 
 sub dump_subalignment {
@@ -166,29 +186,25 @@ sub dump_subalignment {
   my $oali = Bio::AlignIO->new(-file   => ">$oalifile",
 			       -format => "ClustalW",
 			       -flush  => 0,
-			       -displayname_flat =>  );
+			       -displayname_flat => 1 );
   $aln = $self->next_aln->select_noncont(@$alinr);
   $oali->write_aln( $aln );
 
-print Dumper($aln);
-
   # create subalignment fasta file
   my $ofafile = file($oodir,$ids.".fa");
-#  my $ofa = Bio::AlignIO->new(-file   => ">$ofafile",
-#			      -format => "fasta",
-#			      -flush  => 0 );
-#  $aln = $self->next_aln->remove_gaps();
-#  $aln2 = $aln->remove_gaps;
-#  print Dumper($aln);
-#  print Dumper($aln2);
-#  $ofa->write_aln( $aln );
+  my $ofa = Bio::AlignIO->new(-file   => ">$ofafile",
+			      -format => "fasta",
+			      -flush  => 0,
+			      -displayname_flat => 1 );
+  $aln2 = $aln->remove_gaps;
+  $ofa->write_aln( $aln2 );
 
   # extract sequences from alignment and dump to .seq file
+  # NOTE that these sequences do contain gap symbols, intentionally (!)
+  # these can then be replaced by Ns to compute eg hamming distance
   my $oseqfile = file($oodir,$ids.".seq");
   open my $seqfile, ">", $oseqfile or die $!;
   foreach my $seq ($aln->each_seq) {
- #   print Dumper($seq);
- #   print "**".ref($aln)."** "." >>".$seq->id."\t".$seq->seq."\n";
     print $seqfile $seq->seq,"\n";
   }
   close($seqfile);
@@ -196,6 +212,32 @@ print Dumper($aln);
   return ( $oalifile );
 }
 
+sub _hamming {
+  my $self = shift;
+  my $this_function = (caller(0))[3];
+  my $hamming = -1;
+  croak "ERROR [$this_function] cannot compute Hamming distance for $self->next_aln->num_sequences sequences"
+    if ($self->next_aln->num_sequences != 2);
+
+  my $aln =  $self->next_aln->select_noncont((1,2));
+
+  # compute Hamming distance of the aligned sequences, replacing gaps with Ns
+  my $alnN = dclone($aln);
+  croak("ERROR [$this_function] cannot replace gaps with Ns")
+    unless ($alnN->map_chars('-','N') == 1);
+  my $seq1 = $alnN->get_seq_by_pos(1)->seq;
+  my $seq2 = $alnN->get_seq_by_pos(2)->seq;
+  croak "ERROR [$this_function] sequence length differs"
+    unless(length($seq1)==length($seq2));
+  my $hammingN = ($seq1 ^ $seq2) =~ tr/\001-\255//;
+  $self->hammingdistN($hammingN);
+
+#  print $self->infilebasename,":\n";
+#  print ">>s1: $seq1\n";
+#  print ">>s2: $seq2\n";
+#  print "** dhN = ".$self->hammingdistN."\n";
+#  print "+++\n";
+}
 
 sub _alifold {
   my $self = shift;
@@ -218,8 +260,12 @@ sub _alifold {
     croak $!;
   }
   my @aliout = split /\n/, $$stdout_buf[0];
-  croak "ERROR [$this_function] cannot parse RNAalifold output"
-    unless ($aliout[1] =~ m/([\(\)\.]+)\s+\((-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(\d+\.\d+)\]/);
+
+  unless ($aliout[1] =~ m/([\(\)\.]+)\s+\(\s?(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(\d+\.\d+)\]/){
+    carp "ERROR [$this_function]". $self->infilebasename.":\n$aliout[1]";
+    croak "ERROR [$this_function] cannot parse RNAalifold output";
+  }
+  
   $self->consensus_struc($1);
   $self->consensus_mfe($2);
   $self->consensus_energy($3);

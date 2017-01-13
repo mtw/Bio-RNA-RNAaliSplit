@@ -1,21 +1,24 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-13 11:50:08 mtw>
+# Last changed Time-stamp: <2017-01-13 21:15:16 mtw>
 # -*-CPerl-*-
 #
-# usage: alisplit.pl myfile.{aln,stk}
+# usage: alisplit.pl myfile.aln
 
 use AlignSplit;
+use SplitDecomposition;
 use Data::Dumper;
+use Carp;
 
-my $alnfile = "./result.aln";
+my $alnfile = "./t1_no11.aln";
 my $format = "ClustalW";
 # Display ID handling in Bio::AlignIO is broken for Stockholm format
 # use ClustalW format instead !!!
 
 my @nseqs=();
-my ($i,$j,$dim);
+my ($i,$j,$dim,$Dfile);
 my @pw_alns = ();
 my @D = ();
+my $method = "dHn"; # SCI | dHn | dHx
 
 my $AlignSplitObject = AlignSplit->new(infile => $alnfile,
 				       format => $format,
@@ -26,7 +29,7 @@ my $AlignSplitObject = AlignSplit->new(infile => $alnfile,
 
 # extract all pairwise alignments
 my $dim = $AlignSplitObject->next_aln->num_sequences;
-print "NS: $dim\n";
+#print "NS: $dim\n";
 for ($i=1;$i<$dim;$i++){
   for($j=$i+1;$j<=$dim;$j++){
     my $sa = $AlignSplitObject->dump_subalignment("pairwise", [$i,$j]);
@@ -41,32 +44,72 @@ for($i=0;$i<$dim;$i++){
   }
 }
 
-# build distance matrix based on -log( [normalized] pairwise SCI)
+# build distance matrix based on pairwise alignments
 foreach my $ali (@pw_alns){
-  my ($sci,$dsci);
-  print "processing $ali ...\n";
+  #  print "processing $ali ...\n";
   my $pw_aso = AlignSplit->new(infile => $ali,
 			       format => "ClustalW");
-#  my $bn = basename($pw_aso->infile->basename, ".aln");
+#  print Dumper($pw_aso);
   my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
-  if($pw_aso->sci > 1){$sci = 1}
-  elsif ($pw_aso->sci == 0.){$sci = 0.000001}
-  else { $sci = $pw_aso->sci; }
-  $dsci = -1*log($sci)/log(10);
-
-  $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dsci;
-  print "$i -> $j : $sci\t$dsci\n";
+  if ($method eq "SCI"){
+    # distance = -log( [normalized] pairwise SCI)
+    my ($sci,$dsci);
+    if($pw_aso->sci > 1){$sci = 1}
+    elsif ($pw_aso->sci == 0.){$sci = 0.000001}
+    else { $sci = $pw_aso->sci; }
+    $dsci = -1*log($sci)/log(10);
+    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dsci;
+    #  print "$i -> $j : $sci\t$dsci\n";
+    $Dfile = dump_matrix(\@D,$dim,1,"S");
+  }
+  elsif ($method eq "dHn") {
+    # Hamming dist with gaps replaced by Ns
+    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistN;
+    $Dfile = dump_matrix(\@D,$dim,1,"dHn");
+  }
+  elsif ($method eq "dHx") {
+    # TODO compute $pw_aso->hammingdistX in AlignSplit.pm
+    # Hamming dist with all gap columns removed
+    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistX;
+    $Dfile = dump_matrix(\@D,$dim,1,"dHx");
+  }
+  else {
+    croak "Method $method not available ..please use SCI|dHn|dHx";
+  }
 }
-dump_matrix(\@D,$dim,1);
+
+# compute Neighbor Joining tree and do split decomposition
+my $sd = SplitDecomposition->new(infile => $Dfile,
+				 odir => $AlignSplitObject->odir,
+				 basename => $AlignSplitObject->infilebasename);
+print Dumper($sd);
+
+
+###############
+# subroutines #
+###############
+
+sub build_NJtree {
+  my $file = shift;
+  print Dumper($file);
+  my $AScmd = "cat $file | AnalyseDists -Xn";
+  print "$AScmd\n";
+}
 
 sub dump_matrix {
-  my ($M, $d, $ad) = @_;
+  my ($M, $d, $ad, $what) = @_;
   my ($i,$j);
+  my $mxfile = "ld.mx";
+
+  if ($what eq "S"){$info="> S (SCI distance)"}
+  elsif($what eq "dHn"){$info="> H (Hamming distance with gap Ns)"}
+  elsif($what eq "dHx"){$info="> H (Hamming distance with gaps removed)"}
+  else{$info="> H (unknown)"}
 
   if (defined $ad){ # print lower triangle matrix input for AanalyseDists
-    open my $matrix, ">", "ld.mx" or die $!;
-    print $matrix "> S (SCI distance)\n";
+    open my $matrix, ">", $mxfile or die $!;
+    print $matrix $info,"\n";
     print $matrix "> X $d\n";
     for ($i=1;$i<$d;$i++){
       for($j=0;$j<$i;$j++){
@@ -76,7 +119,7 @@ sub dump_matrix {
     }
     close $matrix;
   }
-  else{ # print the entire matrix
+  else{ # print entire matrix
     for ($i=0;$i<$d;$i++){
       for($j=0;$j<$d;$j++){
 	printf "%6.4f ", @$M[$d*$i+$j];
@@ -84,50 +127,5 @@ sub dump_matrix {
       print "\n";
     }
   }
-  
+  return $mxfile;
 }
-
-die;
-
-
-
-
-
-
-
-
-
-
-my $aln = $AlignSplitObject->alignment->next_aln();
-# Extract sequences and check values for the alignment column $pos
-foreach $seq ($aln->each_seq) {
-  $_ = $seq->seq;
-  s/-/N/g;
-  push @nseqs, $_;
-}
-
-my $allseq = join "\n", @nseqs;
-my $AnalyseSequences_cmd = "echo \'$allseq\' | AnalyseSeqs -Xm";
-#print $AnalyseSequences_cmd."\n";
-
-open (AS, $AnalyseSequences_cmd."|");
-while(<AS>){
-  chomp;
-  next if($.==1);
-  if($.==2){
-    print "\@\@$_\@\@\n";
-    die unless ($_ =~ /^>\sX\s+(\d+)/);
-    $dim = $1;
-    print "dim is $dim\n";
-    next
-  }
-  print $.;
-}
-close(AS);
-#### TODO read in distance matrix produced by another program, such as AnalyseSequences
-
-#my $parser = Bio::Matrix::IO->new(-format => 'phylip',
-#                                    -file   => 'filename.dist');
-#my $mat  = $parser->next_matrix;
-#my $tree = $dfactory->make_tree($mat);
-#$treeout->write_tree($tree);
