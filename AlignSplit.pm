@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-13 20:32:23 mtw>
+# Last changed Time-stamp: <2017-01-18 10:39:51 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -172,26 +172,29 @@ sub BUILD {
   }
 
 sub dump_subalignment {
-  my ($self,$alipathsegment,$alinr) = @_;
+  my ($self,$alipathsegment,$token, $what) = @_;
   my $this_function = (caller(0))[3];
-  my ($aln,$aln2);
+  my ($aln,$aln2,$name);
+
   # create output path
-  my $ids = join "_", @$alinr;
+  my $ids = join "_", @$what;
   unless (defined($alipathsegment)){$alipathsegment = "tmp"}
   my $oodir = $self->odir->subdir($alipathsegment);
   mkdir($oodir);
 
   # create subalignment .aln file
-  my $oalifile = file($oodir,$ids.".aln");
+  if (defined($token)){$name = $token.".".$ids}
+  else{$name=$ids}
+  my $oalifile = file($oodir,$name.".aln");
   my $oali = Bio::AlignIO->new(-file   => ">$oalifile",
 			       -format => "ClustalW",
 			       -flush  => 0,
 			       -displayname_flat => 1 );
-  $aln = $self->next_aln->select_noncont(@$alinr);
+  $aln = $self->next_aln->select_noncont(@$what);
   $oali->write_aln( $aln );
 
   # create subalignment fasta file
-  my $ofafile = file($oodir,$ids.".fa");
+  my $ofafile = file($oodir,$name.".fa");
   my $ofa = Bio::AlignIO->new(-file   => ">$ofafile",
 			      -format => "fasta",
 			      -flush  => 0,
@@ -202,7 +205,7 @@ sub dump_subalignment {
   # extract sequences from alignment and dump to .seq file
   # NOTE that these sequences do contain gap symbols, intentionally (!)
   # these can then be replaced by Ns to compute eg hamming distance
-  my $oseqfile = file($oodir,$ids.".seq");
+  my $oseqfile = file($oodir,$name.".seq");
   open my $seqfile, ">", $oseqfile or die $!;
   foreach my $seq ($aln->each_seq) {
     print $seqfile $seq->seq,"\n";

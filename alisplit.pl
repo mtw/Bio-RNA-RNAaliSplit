@@ -1,15 +1,17 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-13 21:15:16 mtw>
+# Last changed Time-stamp: <2017-01-18 19:58:41 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl myfile.aln
 
 use AlignSplit;
+use WrapRNAz;
 use SplitDecomposition;
+
 use Data::Dumper;
 use Carp;
 
-my $alnfile = "./t1_no11.aln";
+my $alnfile = "./ALL.SL.short2.JEVG.1.2.mloc.aln";
 my $format = "ClustalW";
 # Display ID handling in Bio::AlignIO is broken for Stockholm format
 # use ClustalW format instead !!!
@@ -32,7 +34,7 @@ my $dim = $AlignSplitObject->next_aln->num_sequences;
 #print "NS: $dim\n";
 for ($i=1;$i<$dim;$i++){
   for($j=$i+1;$j<=$dim;$j++){
-    my $sa = $AlignSplitObject->dump_subalignment("pairwise", [$i,$j]);
+    my $sa = $AlignSplitObject->dump_subalignment("pairwise", undef, [$i,$j]);
     push @pw_alns, $sa->stringify;
   }
 }
@@ -46,10 +48,10 @@ for($i=0;$i<$dim;$i++){
 
 # build distance matrix based on pairwise alignments
 foreach my $ali (@pw_alns){
-  #  print "processing $ali ...\n";
+  #print "processing $ali ...\n";
   my $pw_aso = AlignSplit->new(infile => $ali,
 			       format => "ClustalW");
-#  print Dumper($pw_aso);
+  #print Dumper($pw_aso);
   my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
   if ($method eq "SCI"){
@@ -83,19 +85,40 @@ foreach my $ali (@pw_alns){
 my $sd = SplitDecomposition->new(infile => $Dfile,
 				 odir => $AlignSplitObject->odir,
 				 basename => $AlignSplitObject->infilebasename);
-print Dumper($sd);
+#print Dumper($sd);
+print "Identified ".$sd->count." splits\n";
+my $splitnr=1;
+while (my $sets = $sd->pop()){
+  my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2) = (0)x4;
+  my $set1 = $$sets{S1};
+  my $set2 = $$sets{S2};
+  my $token = "split".$splitnr;
+#  print "set1: @$set1\n";
+#  print "set2: @$set2\n";
+  $sa1 = $AlignSplitObject->dump_subalignment("splits", $token, $set1);
+  $sa2 = $AlignSplitObject->dump_subalignment("splits", $token, $set2);
+  if( scalar(@$set1) > 1){
+    $rnazo1 = WrapRNAz->new(alnfile => $sa1);
+    $have_rnazo1 = 1;
+    #print Dumper($rnazo1);
+    print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$sa1."\n";
+  }
+  if( scalar(@$set2) > 1){
+    $rnazo2 = WrapRNAz->new(alnfile => $sa2);
+    $have_rnazo2 = 1;
+    print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$sa2."\n";
+   # print "$rnazo2->P\t$rnazo2->sci\t$rnazo2->z\t$sa2\n";
+    #print Dumper($rnazo2);
+  }
+  #print "----\n";
+  $splitnr++;
+}
 
 
 ###############
 # subroutines #
 ###############
 
-sub build_NJtree {
-  my $file = shift;
-  print Dumper($file);
-  my $AScmd = "cat $file | AnalyseDists -Xn";
-  print "$AScmd\n";
-}
 
 sub dump_matrix {
   my ($M, $d, $ad, $what) = @_;
