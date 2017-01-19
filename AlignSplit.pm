@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-18 10:39:51 mtw>
+# Last changed Time-stamp: <2017-01-19 16:29:59 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -7,7 +7,7 @@
 
 package AlignSplit;
 
-use version; our $VERSION = qv('0.01');
+use version; our $VERSION = qv('0.02');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -172,9 +172,12 @@ sub BUILD {
   }
 
 sub dump_subalignment {
-  my ($self,$alipathsegment,$token, $what) = @_;
+  my ($self,$alipathsegment,$token,$what) = @_;
   my $this_function = (caller(0))[3];
   my ($aln,$aln2,$name);
+
+  croak "ERROR [$this_function] argument 'token' not provided"
+    unless (defined($token));
 
   # create output path
   my $ids = join "_", @$what;
@@ -182,10 +185,14 @@ sub dump_subalignment {
   my $oodir = $self->odir->subdir($alipathsegment);
   mkdir($oodir);
 
+  # create info file 
+  my $oinfofile = file($oodir,$token.".info");
+  open my $oinfo, ">", $oinfofile or die $!;
+  print $oinfo join "\n", @$what," ";
+  close($oinfo);
+
   # create subalignment .aln file
-  if (defined($token)){$name = $token.".".$ids}
-  else{$name=$ids}
-  my $oalifile = file($oodir,$name.".aln");
+  my $oalifile = file($oodir,$token.".aln");
   my $oali = Bio::AlignIO->new(-file   => ">$oalifile",
 			       -format => "ClustalW",
 			       -flush  => 0,
@@ -194,7 +201,7 @@ sub dump_subalignment {
   $oali->write_aln( $aln );
 
   # create subalignment fasta file
-  my $ofafile = file($oodir,$name.".fa");
+  my $ofafile = file($oodir,$token.".fa");
   my $ofa = Bio::AlignIO->new(-file   => ">$ofafile",
 			      -format => "fasta",
 			      -flush  => 0,
@@ -205,7 +212,7 @@ sub dump_subalignment {
   # extract sequences from alignment and dump to .seq file
   # NOTE that these sequences do contain gap symbols, intentionally (!)
   # these can then be replaced by Ns to compute eg hamming distance
-  my $oseqfile = file($oodir,$name.".seq");
+  my $oseqfile = file($oodir,$token.".seq");
   open my $seqfile, ">", $oseqfile or die $!;
   foreach my $seq ($aln->each_seq) {
     print $seqfile $seq->seq,"\n";
