@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-18 19:58:41 mtw>
+# Last changed Time-stamp: <2017-01-19 10:48:30 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl myfile.aln
@@ -11,7 +11,7 @@ use SplitDecomposition;
 use Data::Dumper;
 use Carp;
 
-my $alnfile = "./ALL.SL.short2.JEVG.1.2.mloc.aln";
+my $alnfile = "./t1.aln";
 my $format = "ClustalW";
 # Display ID handling in Bio::AlignIO is broken for Stockholm format
 # use ClustalW format instead !!!
@@ -85,8 +85,14 @@ foreach my $ali (@pw_alns){
 my $sd = SplitDecomposition->new(infile => $Dfile,
 				 odir => $AlignSplitObject->odir,
 				 basename => $AlignSplitObject->infilebasename);
-#print Dumper($sd);
 print "Identified ".$sd->count." splits\n";
+
+# run RNAz for the input alignment
+my $rnaz = WrapRNAz->new(alnfile => $alnfile);
+print join "\t", $rnaz->P,$rnaz->sci,$rnaz->z,$alnfile."\n";
+print "------------------------------\n";
+
+# extract split sets and run RNAz on each of them
 my $splitnr=1;
 while (my $sets = $sd->pop()){
   my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2) = (0)x4;
