@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-19 18:39:04 mtw>
+# Last changed Time-stamp: <2017-01-20 13:10:29 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl myfile.aln
@@ -89,9 +89,7 @@ foreach my $ali (@pw_alns){
     # Hamming dist with all gap columns removed
     $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistX;
   }
-  else {
-    croak "Method $method not available ..please use SCI|dHn|dHx";
-  }
+  else {croak "Method $method not available ..please use SCI|dHn|dHx"}
 }
 
 # write matrix to file
@@ -103,16 +101,18 @@ else { croak "Method $method not available ..please use SCI|dHn|dHx"}
 
 
 # compute Neighbor Joining tree and do split decomposition
-print STDERR "Perform Split Decomposition ...";
+print STDERR "Perform Split Decomposition ...\n";
 my $sd = SplitDecomposition->new(infile => $Dfile,
 				 odir => $AlignSplitObject->odir,
 				 basename => $AlignSplitObject->infilebasename);
 print "Identified ".$sd->count." splits\n";
 
 # run RNAz for the input alignment
-my $rnaz = WrapRNAz->new(alnfile => $alnfile);
-print join "\t", $rnaz->P,$rnaz->sci,$rnaz->z,$alnfile."\n";
-print "------------------------------\n";
+my $rnaz = WrapRNAz->new(alnfile => $alnfile,
+			 odir => $AlignSplitObject->odir);
+print join "\t", "#SVM prob","SCI","Z-score","hit","sequences","alignment\n";
+print join "\t", $rnaz->P,$rnaz->sci,$rnaz->z,"O",$dim,$alnfile."\n";
+print "-----------------------------------------\n";
 
 # extract split sets and run RNAz on each of them
 my $splitnr=1;
@@ -126,21 +126,19 @@ while (my $sets = $sd->pop()){
   $sa1 = $AlignSplitObject->dump_subalignment("splits", $token.".set1", $set1);
   $sa2 = $AlignSplitObject->dump_subalignment("splits", $token.".set2", $set2);
   if( scalar(@$set1) > 1){
-    $rnazo1 = WrapRNAz->new(alnfile => $sa1);
+    $rnazo1 = WrapRNAz->new(alnfile => $sa1,
+			    odir => $AlignSplitObject->odir);
     $have_rnazo1 = 1;
-    #print Dumper($rnazo1);
     ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-    print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$hint,$sa1."\n";
+    print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$hint,scalar(@$set1),$sa1."\n";
   }
   if( scalar(@$set2) > 1){
-    $rnazo2 = WrapRNAz->new(alnfile => $sa2);
+    $rnazo2 = WrapRNAz->new(alnfile => $sa2,
+			    odir => $AlignSplitObject->odir);
     $have_rnazo2 = 1;
     ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-    print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$hint,$sa2."\n";
-   # print "$rnazo2->P\t$rnazo2->sci\t$rnazo2->z\t$sa2\n";
-    #print Dumper($rnazo2);
+    print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$hint,scalar(@$set2),$sa2."\n";
   }
-  #print "----\n";
   $splitnr++;
 }
 
