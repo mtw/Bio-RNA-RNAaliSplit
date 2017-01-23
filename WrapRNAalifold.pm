@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-22 19:54:57 mtw>
+# Last changed Time-stamp: <2017-01-23 19:22:28 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
@@ -64,7 +64,7 @@ has 'odirname' => (
 
 has 'odir' => (
 	       is => 'rw',
-	       isa => 'MyDir3',
+	       isa => 'MyDir4',
 	       predicate => 'has_odir',
 	       coerce => 1,
 	      );
@@ -88,14 +88,43 @@ has 'sci' => (
 	      isa => 'Num',
 	      init_arg => undef,
 	      documentation => q(Structure conservation index),
-	      );
+	     );
+
+has 'consensus_struc' => (
+			  is => 'rw',
+			  isa => 'Str',
+			  predicate => 'has_consensus_struc',
+			  init_arg => undef,
+			 );
+
+has 'consensus_mfe' => (
+			is => 'rw',
+			isa => 'Num',
+			predicate => 'has_consensus_mfe',
+			init_arg => undef,
+		       );
+
+has 'consensus_energy' => (
+			   is => 'rw',
+			   isa => 'Num',
+			   predicate => 'has_consensus_energy',
+			   init_arg => undef,
+			  );
+
+has 'consensus_covar_terms' => (
+				is => 'rw',
+				isa => 'Num',
+				predicate => 'has_consensus_covar_terms',
+				init_arg => undef,
+			       );
+
 
 sub BUILD {
   my $self = shift;
   my $this_function = (caller(0))[3];
   confess "ERROR [$this_function] \$se+lf->alnfile not available"
     unless ($self->has_alnfile);
-   $rnaalifold = can_run('RNAalfold') or
+   $rnaalifold = can_run('RNAalifold') or
      croak "ERROR [$this_function] RNAalifold not found";
   unless($self->has_odir){
     $self->odir( [$self->alnfile->dir,$self->odirname] );
@@ -111,15 +140,34 @@ sub BUILD {
 sub run_rnaalifold {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  my ($rnaalifold_outfilename,$rnaalifold_out);
-  if ($self->has_alnfilebasename){$rnaalifold_outfilename = $self->alnfilebasename.".alifold.out"}
-  elsif ($self->has_basename){$rnaalifold_outfilename = $self->bn.".alifold.out"}
-  else{$rnaalifold_outfilename = "alifold.out"}
-  $rnaalifold_out = file($oodir,$rnaalifold_outfilename);
-  open my $fh, ">", $rnaalifold_out;
-  my $rnaalifold_cmd = $rnaalifold." --aln --color -r --cfactor 0.6 --nfactor 0.5 -p ".$self->alnfile;
+  my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$alirnaps,$alidotps_fn,$alidotps);
+  if ($self->has_alnfilebasename){
+    $out_fn = $self->alnfilebasename.".alifold.out";
+    $alnps_fn = $self->alnfilebasename.".aln.ps";
+    $alirnaps_fn = $self->alnfilebasename.".alirna.ps";
+    $alidotps_fn = $self->alnfilebasename.".alidot.ps";
+  }
+  elsif ($self->has_basename){
+    $out_fn = $self->bn.".alifold.out";
+    $alnps_fn = $self->bn.".aln.ps";
+    $alirnaps_fn = $self->bn.".alirna.ps";
+    $alidotps_fn = $self->bn.".alidot.ps";
+  }
+  else{
+    $out_fn = "alifold.out";
+    $alnps_fn = "aln.ps";
+    $alirnaps_fn = "alirna.ps";
+    $alidotps_fn = "alidot.ps";
+  }
+  $out = file($oodir,$out_fn); # RNAalifold stdout
+  $alnps = file($oodir,$alnps_fn); # RNAalifold aln.ps
+  $alirnaps = file($oodir,$alirnaps_fn); # RNAalifold alirna.ps
+  $alidotps = file($oodir,$alidotps_fn); # RNAalifold alidot.ps
+
+  open my $fh, ">", $out;
+  my $cmd = $rnaalifold." --aln --color -r --cfactor 0.6 --nfactor 0.5 -p --sci ".$self->alnfile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $rnaalifold_cmd, verbose => 0 );
+    run( command => $cmd, verbose => 0 );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rnaalifold unsuccessful\n";
     print STDERR "ERROR: this is what the command printed:\n";
@@ -134,72 +182,31 @@ sub run_rnaalifold {
   close($fh);
 
   $self->_parse_rnaalifold($stdout_buffer);
+  rename "aln.ps", $alnps;
+  rename "alirna.ps", $alirnaps;
+  rename "alidot.ps", $alidotps;
+  unlink "alifold.out";
 }
 
 # parse RNAalifold output
 sub _parse_rnaalifold {
-  my ($self,$rnaz) = @_;
+  my ($self,$out) = @_;
   my $this_function = (caller(0))[3];
-  my @rnaz=split(/^/, $rnaz);
-  my ($N,$identity,$columns,$decValue,$P,$z,$sci,$energy,$strand,
-      $covariance,$combPerPair,$meanMFE,$consensusMFE,$consensusSeq,
-      $consensusFold, $GCcontent, $ShannonEntropy);
-  my @aln=();
+  my @buffer=split(/^/, $out);
 
-  foreach my $i (0..$#rnaz){
-    my $line=$rnaz[$i];
-    $identity=$1 if ($line=~/Mean pairwise identity:\s*(-?\d+.\d+)/);
-    $N=$1 if ($line=~/Sequences:\s*(\d+)/);
-    if ($line=~/Reading direction:\s*(forward|reverse)/){
-      $strand=($1 eq 'forward')?'+':'-';
+  foreach my $i (0..$#buffer){
+    next unless ($i == 1); # just parse consensus structure
+    unless ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s?(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(\d+\.\d+)\]/){
+      carp "ERROR [$this_function]  cannot parse RNAalifold output:";
+      croak $self->alnfile.":\n$buffer[$i]";
     }
-    $columns=$1 if ($line=~/Columns:\s*(\d+)/);
-    $decValue=$1 if ($line=~/SVM decision value:\s*(-?\d+.\d+)/);
-    $P=$1 if ($line=~/SVM RNA-class probability:\s*(-?\d+.\d+)/);
-    $z=$1 if ($line=~/Mean z-score:\s*(-?\d+.\d+)/);
-    $sci=$1 if ($line=~/Structure conservation index:\s*(-?\d+.\d+)/);
-    $energy=$1 if ($line=~/Energy contribution:\s*(-?\d+.\d+)/);
-    $covariance=$1 if ($line=~/Covariance contribution:\s*(-?\d+.\d+)/);
-    $combPerPair=$1 if ($line=~/Combinations\/Pair:\s*(-?\d+.\d+)/);
-    $consensusMFE=$1 if ($line=~/Consensus MFE:\s*(-?\d+.\d+)/);
-    $meanMFE=$1 if ($line=~/Mean single sequence MFE:\s*(-?\d+.\d+)/);
-    $GCcontent=$1 if ($line=~/G\+C content:\s(\d+.\d+)/);
-    $ShannonEntropy=$1 if ($line=~/Shannon entropy:\s*(\d+.\d+)/);
-
-    if ($line=~/^>/){
-      chomp($rnaz[$i+1]);
-      chomp($rnaz[$i+2]);
-      if ($line=~/^>consensus/){
-	$consensusSeq=$rnaz[$i+1];
-	$consensusFold=substr($rnaz[$i+2],0,length($rnaz[$i+1]));
-	last;
-      } else {
-	if ($line=~/>(.*?) (\d+) (\d+) (\+|\-) (\d+)/){
-	  push @aln, {name=>$1,
-		      start=>$2,
-		      end=>$2+$3,
-		      strand=>$4,
-		      fullLength=>$5,
-		      seq=>$rnaz[$i+1],
-		      fold=>substr($rnaz[$i+2],0,length($rnaz[$i+1]))};
-	  $i+=2;
-	} elsif ($line=~/^(.*)\/(\d+)-(\d+)$/){
-	  push @aln, {name=>$1,
-		      start=>$2,
-		      end=>$3,
-		      strand=>$strand,
-		      fullLength=>'',
-		      seq=>$rnaz[$i+1],
-		      fold=>substr($rnaz[$i+2],0,length($rnaz[$i+1]))};
-	  $i+=2;
-	}
-      }
-    }
+    $self->consensus_struc($1);
+    $self->consensus_mfe($2);
+    $self->consensus_energy($3);
+    $self->consensus_covar_terms($4);
+    $self->sci($5);
+    last;
   }
-
-  $self->P($P);
-  $self->z($z);
-  $self->sci($sci);
 }
 
 1;

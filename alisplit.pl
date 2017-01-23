@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-20 13:10:29 mtw>
+# Last changed Time-stamp: <2017-01-23 19:31:12 mtw>
 # -*-CPerl-*-
 #
-# usage: alisplit.pl myfile.aln
+# usage: alisplit.pl -a myfile.aln
 #
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
@@ -42,7 +42,11 @@ unless (-f $alnfile){
 my $AlignSplitObject = AlignSplit->new(infile => $alnfile,
 				       format => $format,
 				       dump => 1);
+#print Dumper($AlignSplitObject);
+#die;
 my $dim = $AlignSplitObject->next_aln->num_sequences;
+
+
 
 # extract all pairwise alignments
 print STDERR "Extracting pairwise alignments ...\n";
@@ -117,7 +121,7 @@ print "-----------------------------------------\n";
 # extract split sets and run RNAz on each of them
 my $splitnr=1;
 while (my $sets = $sd->pop()){
-  my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$hint) = (0)x5;
+  my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$ao1,$ao2,$hint) = (0)x7;
   my $set1 = $$sets{S1};
   my $set2 = $$sets{S2};
   my $token = "split".$splitnr;
@@ -130,6 +134,9 @@ while (my $sets = $sd->pop()){
 			    odir => $AlignSplitObject->odir);
     $have_rnazo1 = 1;
     ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
+    $ao1 = WrapRNAalifold->new(alnfile => $sa1,
+			       odir => $AlignSplitObject->odir);
+#    print Dumper($ao1);
     print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$hint,scalar(@$set1),$sa1."\n";
   }
   if( scalar(@$set2) > 1){
@@ -137,6 +144,9 @@ while (my $sets = $sd->pop()){
 			    odir => $AlignSplitObject->odir);
     $have_rnazo2 = 1;
     ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
+    $ao2 = WrapRNAalifold->new(alnfile => $sa2,
+			       odir => $AlignSplitObject->odir);
+#    print Dumper($ao2);
     print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$hint,scalar(@$set2),$sa2."\n";
   }
   $splitnr++;

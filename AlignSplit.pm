@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-19 16:29:59 mtw>
+# Last changed Time-stamp: <2017-01-23 19:04:56 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -19,6 +19,7 @@ use File::Basename;
 use IPC::Cmd qw(can_run run);
 use Bio::AlignIO;
 use Storable 'dclone';
+use WrapRNAalifold;
 
 subtype 'MyAln' => as class_type('Bio::AlignIO');
 
@@ -37,6 +38,8 @@ subtype 'MyDir' => as class_type('Path::Class::Dir');
 coerce 'MyDir'
   => from 'ArrayRef'
   => via { Path::Class::Dir->new( @{ $_ } ) };
+
+
 
 has 'infile' => (
 		 is => 'ro',
@@ -58,7 +61,7 @@ has 'infilebasename' => (
 			 is => 'rw',
 			 isa => 'Str',
 			 predicate => 'has_basename',
-			 init_arg => undef, # make this unsettable via constructor
+			 init_arg => undef,
 			);
 
 has 'alignment' => (
@@ -72,7 +75,7 @@ has 'next_aln' => (
 		   is => 'rw',
 		   isa => 'Bio::SimpleAlign',
 		   predicate => 'has_next_aln',
-		   init_arg => undef, # make this unsettable via constructor
+		   init_arg => undef,
 		  );
 
 has 'odirname' => (
@@ -86,7 +89,7 @@ has 'odir' => (
 	       isa => 'MyDir',
 	       predicate => 'has_odir',
 	       coerce => 1,
-	       init_arg => undef, # make this unsettable via constructor
+	       init_arg => undef,
 	      );
 
 has 'dump' => (
@@ -95,17 +98,12 @@ has 'dump' => (
 	       predicate => 'has_dump_flag',
 	       );
 
-has 'sci' => (
-	      is => 'rw',
-	      isa => 'Num',
-	      predicate => 'has_sci',
-	     );
-
 has 'hammingdistN' => (
 		       is => 'rw',
 		       isa => 'Num',
 		       default => '-1',
 		       predicate => 'has_hammingN',
+		       init_arg => undef,
 		      );
 
 has 'hammingdistX' => (
@@ -113,30 +111,16 @@ has 'hammingdistX' => (
 		       isa => 'Num',
 		       default => '-1',
 		       predicate => 'has_hammingX',
+		       init_arg => undef,
 		      );
 
-has 'consensus_struc' => (
-			  is => 'rw',
-			  isa => 'Str',
-			  predicate => 'has_consensus_struc',
-			 );
+has 'alifold' => (
+		  is => 'rw',
+		  isa => 'WrapRNAalifold',
+		  predicate => 'has_alifold',
+		  init_arg => undef,
+		 );
 
-has 'consensus_mfe' => (
-			is => 'rw',
-			isa => 'Num',
-			predicate => 'has_consensus_mfe',
-		       );
-has 'consensus_energy' => (
-			   is => 'rw',
-			   isa => 'Num',
-			   predicate => 'has_consensus_energy',
-			  );
-
-has 'consensus_covar_terms' => (
-				is => 'rw',
-				isa => 'Num',
-				predicate => 'has_consensus_covar_terms',
-			       );
 
 sub BUILD {
     my $self = shift;
@@ -167,8 +151,8 @@ sub BUILD {
 
     if ($self->next_aln->num_sequences == 2){ $self->_hamming() }
 
-    $self->_alifold();
-   
+    $self->alifold(WrapRNAalifold->new(alnfile => $self->infile,
+				       odir => $self->odir));
   }
 
 sub dump_subalignment {
@@ -247,40 +231,6 @@ sub _hamming {
 #  print ">>s2: $seq2\n";
 #  print "** dhN = ".$self->hammingdistN."\n";
 #  print "+++\n";
-}
-
-sub _alifold {
-  my $self = shift;
-  my $this_function = (caller(0))[3];
-  my $sci = 0.0;
-  my $f;
-  my $alifold = can_run('RNAalifold') or
-    croak " ERROR [$this_function] RNAalifold not found";
- # carp "[$this_function]: $alifold";
-
-  $f = $self->infile->stringify;
-  my $cmd = "$alifold --sci $f";
-
-  my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 0 );
-  if( !$success ) {
-    print STDERR "ERROR [$this_function] Call to $alifold unsuccessful\n";
-    print STDERR "ERROR: this is what the command printed:\n";
-    print join "", @$full_buf;
-    croak $!;
-  }
-  my @aliout = split /\n/, $$stdout_buf[0];
-
-  unless ($aliout[1] =~ m/([\(\)\.]+)\s+\(\s?(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(\d+\.\d+)\]/){
-    carp "ERROR [$this_function]". $self->infilebasename.":\n$aliout[1]";
-    croak "ERROR [$this_function] cannot parse RNAalifold output";
-  }
-  
-  $self->consensus_struc($1);
-  $self->consensus_mfe($2);
-  $self->consensus_energy($3);
-  $self->consensus_covar_terms($4);
-  $self->sci($5);
 }
 
 no Moose;
