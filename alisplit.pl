@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-23 19:31:12 mtw>
+# Last changed Time-stamp: <2017-01-24 17:40:37 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -7,9 +7,11 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
+use strict;
+use warnings;
 use AlignSplit;
 use WrapRNAz;
-use SplitDecomposition;
+use WrapAnalyseDists;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
@@ -25,6 +27,7 @@ my @nseqs=();
 my ($i,$j,$dim,$alnfile, $Dfile);
 my @pw_alns = ();
 my @D = ();
+my $check = 1;
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
@@ -39,22 +42,20 @@ unless (-f $alnfile){
 }
 
 
-my $AlignSplitObject = AlignSplit->new(infile => $alnfile,
+my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
 				       format => $format,
 				       dump => 1);
 #print Dumper($AlignSplitObject);
 #die;
-my $dim = $AlignSplitObject->next_aln->num_sequences;
-
-
+$dim = $AlignSplitObject->next_aln->num_sequences;
 
 # extract all pairwise alignments
 print STDERR "Extracting pairwise alignments ...\n";
 for ($i=1;$i<$dim;$i++){
   for($j=$i+1;$j<=$dim;$j++){
     my $token = join "_", "pw",$i,$j;
-    my $sa = $AlignSplitObject->dump_subalignment("pairwise", $token, [$i,$j]);
-    push @pw_alns, $sa->stringify;
+    my ($sa_clustal,$sa_stockholm) = $AlignSplitObject->dump_subalignment("pairwise", $token, [$i,$j]);
+    push @pw_alns, $sa_clustal->stringify;
   }
 }
 
@@ -69,7 +70,7 @@ for($i=0;$i<$dim;$i++){
 print STDERR "Constructing distance matrix based on pairwise alignments ...\n";
 foreach my $ali (@pw_alns){
   #print "processing $ali ...\n";
-  my $pw_aso = AlignSplit->new(infile => $ali,
+  my $pw_aso = AlignSplit->new(ifile => $ali,
 			       format => "ClustalW");
   #print Dumper($pw_aso);
   my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
@@ -96,23 +97,30 @@ foreach my $ali (@pw_alns){
   else {croak "Method $method not available ..please use SCI|dHn|dHx"}
 }
 
+
+
 # write matrix to file
 print STDERR "Writing distance matrix to file ...\n";
-if ($method eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,"S")}
-elsif ($method eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,"dHn")}
-elsif ($method eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,"dHx")}
+if ($method eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,1,"S")}
+elsif ($method eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn")}
+elsif ($method eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx")}
 else { croak "Method $method not available ..please use SCI|dHn|dHx"}
 
+# check triangle inequality
+if ($check == 1){
+  print STDERR "Checking triangle inequality ...\n";
+  my $result = check_triangle($dim,\@D);
+}
 
 # compute Neighbor Joining tree and do split decomposition
 print STDERR "Perform Split Decomposition ...\n";
-my $sd = SplitDecomposition->new(infile => $Dfile,
-				 odir => $AlignSplitObject->odir,
-				 basename => $AlignSplitObject->infilebasename);
+my $sd = WrapAnalyseDists->new(ifile => $Dfile,
+			       odir => $AlignSplitObject->odir,
+			       basename => $AlignSplitObject->infilebasename);
 print "Identified ".$sd->count." splits\n";
 
 # run RNAz for the input alignment
-my $rnaz = WrapRNAz->new(alnfile => $alnfile,
+my $rnaz = WrapRNAz->new(ifile => $alnfile,
 			 odir => $AlignSplitObject->odir);
 print join "\t", "#SVM prob","SCI","Z-score","hit","sequences","alignment\n";
 print join "\t", $rnaz->P,$rnaz->sci,$rnaz->z,"O",$dim,$alnfile."\n";
@@ -122,32 +130,33 @@ print "-----------------------------------------\n";
 my $splitnr=1;
 while (my $sets = $sd->pop()){
   my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$ao1,$ao2,$hint) = (0)x7;
+  my ($sa1_c,$sa1_s,$sa2_c,$sa2_s); # subalignments in Clustal and Stockholm
   my $set1 = $$sets{S1};
   my $set2 = $$sets{S2};
   my $token = "split".$splitnr;
 #  print "set1: @$set1\n";
 #  print "set2: @$set2\n";
-  $sa1 = $AlignSplitObject->dump_subalignment("splits", $token.".set1", $set1);
-  $sa2 = $AlignSplitObject->dump_subalignment("splits", $token.".set2", $set2);
+  ($sa1_c,$sa1_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set1", $set1);
+  ($sa2_c,$sa2_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set2", $set2);
   if( scalar(@$set1) > 1){
-    $rnazo1 = WrapRNAz->new(alnfile => $sa1,
+    $rnazo1 = WrapRNAz->new(ifile => $sa1_c,
 			    odir => $AlignSplitObject->odir);
     $have_rnazo1 = 1;
     ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-    $ao1 = WrapRNAalifold->new(alnfile => $sa1,
+    $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
 			       odir => $AlignSplitObject->odir);
 #    print Dumper($ao1);
-    print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$hint,scalar(@$set1),$sa1."\n";
+    print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$hint,scalar(@$set1),$sa1_c."\n";
   }
   if( scalar(@$set2) > 1){
-    $rnazo2 = WrapRNAz->new(alnfile => $sa2,
+    $rnazo2 = WrapRNAz->new(ifile => $sa2_c,
 			    odir => $AlignSplitObject->odir);
     $have_rnazo2 = 1;
     ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-    $ao2 = WrapRNAalifold->new(alnfile => $sa2,
+    $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
 			       odir => $AlignSplitObject->odir);
 #    print Dumper($ao2);
-    print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$hint,scalar(@$set2),$sa2."\n";
+    print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$hint,scalar(@$set2),$sa2_c."\n";
   }
   $splitnr++;
 }
@@ -159,9 +168,10 @@ while (my $sets = $sd->pop()){
 
 
 sub dump_matrix {
-  my ($M, $d, $ad, $what) = @_;
-  my ($i,$j);
-  my $mxfile = "ld.mx";
+  my ($M, $d, $ad, $pd, $what) = @_;
+  my ($i,$j,$info);
+  my $ad_mx = "ld.mx"; # AnalyseDists lower diagoinal distance matrix
+  my $pd_mx = "pd.dst"; # Phylip distance matrix
 
   if ($what eq "S"){$info="> S (SCI distance)"}
   elsif($what eq "dHn"){$info="> H (Hamming distance with gap Ns)"}
@@ -169,7 +179,7 @@ sub dump_matrix {
   else{$info="> H (unknown)"}
 
   if (defined $ad){ # print lower triangle matrix input for AanalyseDists
-    open my $matrix, ">", $mxfile or die $!;
+    open my $matrix, ">", $ad_mx or die $!;
     print $matrix $info,"\n";
     print $matrix "> X $d\n";
     for ($i=1;$i<$d;$i++){
@@ -188,7 +198,40 @@ sub dump_matrix {
       print "\n";
     }
   }
-  return $mxfile;
+  if (defined $pd){ # print phylip distance matrix
+    open my $matrix, ">", $pd_mx  or die $!;
+    print $matrix "$d\n";
+    for ($i=0;$i<$d;$i++){
+      print $matrix eval($i+1)." ";
+	for($j=0;$j<$d;$j++){
+	  printf $matrix "%6.4f ", @$M[$d*$i+$j];
+	}
+      print $matrix "\n";
+    }
+    close $matrix;
+  }
+  return $ad_mx;
+}
+
+sub check_triangle {
+  my ($d,$dref) = @_;
+  my $count = 0;
+  my @M = @$dref;
+  my ($i,$j,$k,$d_ij,$d_jk,$d_ik);
+  for ($i=0;$i<$d;$i++){
+    for($j=0;$j<$d;$j++){
+      $d_ij = $M[$d*$i+$j];
+      for($k=0;$k<$d;$k++){
+	$d_jk = $M[$d*$j+$k];
+	$d_ik = $M[$d*$i+$k];
+	$count++;
+	croak "ERROR triangle inequation not satisfied i:$i j:$j k:$k"
+	  unless ($d_ij + $d_jk >= $d_ik);
+      }
+
+    }
+  }
+  print STDERR "Checked $count triangles ...\n";
 }
 
 __END__

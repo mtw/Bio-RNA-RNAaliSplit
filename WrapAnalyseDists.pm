@@ -1,12 +1,12 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-18 19:05:38 mtw>
+# Last changed Time-stamp: <2017-01-24 17:12:44 mtw>
 
-# SplitDecomposition.pm: Wrapper for computing split decomposition
+# WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
-# requires AnalyzeDists executable from the ViennaRNA poackage
+# requires AnalyseDists executable from the ViennaRNA poackage
 # available to the Perl interpreter
 
-package SplitDecomposition;
+package WrapAnalyseDists;
 
 use version; our $VERSION = qv('0.01');
 use Carp;
@@ -20,27 +20,6 @@ use IPC::Cmd qw(can_run run);
 
 my ($analysedists,$oodir);
 
-subtype 'MyFile2' => as class_type('Path::Class::File');
-
-coerce 'MyFile2'
-  => from 'Str'
-  => via { Path::Class::File->new($_) };
-
-subtype 'MyDir2' => as class_type('Path::Class::Dir');
-
-coerce 'MyDir2'
-  => from 'ArrayRef'
-  => via { Path::Class::Dir->new( @{ $_ } ) };
-
-has 'infile' => (
-		 is => 'ro',
-		 isa => 'MyFile2',
-		 predicate => 'has_infile',
-		 coerce => 1,
-		 required => 1,
-		 documentation => q(lower triangular matrix of distances),
-		);
-
 has 'basename' => (
 		   is => 'rw',
 		   isa => 'Str',
@@ -52,13 +31,6 @@ has 'odirname' => (
 		   default => 'as',
 		   predicate => 'has_odirname',
 		  );
-
-has 'odir' => (
-	       is => 'rw',
-	       isa => 'MyDir2',
-	       predicate => 'has_odir',
-	       coerce => 1,
-	      );
 
 has 'splits' => (
 		 is => 'rw',
@@ -86,18 +58,20 @@ has 'dim' => (
 	      predicate => 'has_dim',
 	     );
 
+with 'FileDir';
+
 sub BUILD {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  confess "ERROR [$this_function] \$self->infile not available"
-    unless ($self->has_infile);
+  confess "ERROR [$this_function] \$self->ifile not available"
+    unless ($self->has_ifile);
    $analysedists = can_run('AnalyseDists') or
     croak "ERROR [$this_function] AnalyseDists not found";
   unless($self->has_odir){
     unless($self->has_odirname){
       self->odirname("as");
     }
-    $self->odir( [$self->infile->dir,$self->odirname] );
+    $self->odir( [$self->ifile->dir,$self->odirname] );
     mkdir($self->odir);
   }
   $oodir = $self->odir->subdir("analysedists");
@@ -130,7 +104,7 @@ sub _NeighborJoining {
   $nj_tree = file($oodir,$nj_treefilename);
   open my $fh, ">", $nj_out;
 
-  my $ad_cmd = $analysedists." -Xn < ".$self->infile;
+  my $ad_cmd = $analysedists." -Xn < ".$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $ad_cmd, verbose => 0 );
   if( !$success ) {
@@ -156,7 +130,7 @@ sub SplitDecomposition {
   $sd_out = file($oodir,$sd_outfilename);
   open my $fh, ">", $sd_out;
 
-  my $sd_cmd = $analysedists." -Xs < ".$self->infile;
+  my $sd_cmd = $analysedists." -Xs < ".$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $sd_cmd, verbose => 0 );
   if( !$success ) {
@@ -203,7 +177,7 @@ sub _get_dim {
   my $self = shift;
   my $this_function = (caller(0))[3];
   my $dim = -1 ;
-  open my $fh, "<", $self->infile;
+  open my $fh, "<", $self->ifile or die $!;
   while(<$fh>){
     if (m/^>\s+X\s+(\d+)/){$dim = $1;last;}
   }

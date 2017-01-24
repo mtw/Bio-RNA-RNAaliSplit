@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-20 13:15:36 mtw>
+# Last changed Time-stamp: <2017-01-24 17:41:26 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAz
 #
@@ -21,27 +21,6 @@ use IPC::Cmd qw(can_run run);
 
 my ($rnaz,$oodir);
 
-subtype 'MyFile3' => as class_type('Path::Class::File');
-
-coerce 'MyFile3'
-  => from 'Str'
-  => via { Path::Class::File->new($_) };
-
-subtype 'MyDir3' => as class_type('Path::Class::Dir');
-
-coerce 'MyDir3'
-  => from 'ArrayRef'
-  => via { Path::Class::Dir->new( @{ $_ } ) };
-
-has 'alnfile' => (
-		 is => 'ro',
-		 isa => 'MyFile3',
-		 predicate => 'has_alnfile',
-		 coerce => 1,
-		 required => 1,
-		 documentation => q(Alignment file in CLustalW format),
-		 );
-
 has 'alnfilebasename' => (
 			  is => 'rw',
 			  isa => 'Str',
@@ -62,13 +41,6 @@ has 'odirname' => (
 		   predicate => 'has_odirname',
 		  );
 
-has 'odir' => (
-	       is => 'rw',
-	       isa => 'MyDir3',
-	       predicate => 'has_odir',
-	       coerce => 1,
-	      );
-
 has 'P' => (
 	    is => 'rw',
 	    isa => 'Num',
@@ -88,22 +60,24 @@ has 'sci' => (
 	      isa => 'Num',
 	      init_arg => undef,
 	      documentation => q(Structure conservation index),
-	      );
+	     );
+
+with 'FileDir';
 
 sub BUILD {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  confess "ERROR [$this_function] \$se+lf->alnfile not available"
-    unless ($self->has_alnfile);
+  confess "ERROR [$this_function] \$self->ifile not available"
+    unless ($self->has_ifile);
    $rnaz = can_run('RNAz') or
      croak "ERROR [$this_function] RNAz not found";
   unless($self->has_odir){
-    $self->odir( [$self->alnfile->dir,$self->odirname] );
+    $self->odir( [$self->ifile->dir,$self->odirname] );
     mkdir($self->odir);
   }
   $oodir = $self->odir->subdir("rnaz");
   mkdir($oodir);
-  $self->alnfilebasename(fileparse($self->alnfile->basename, qr/\.[^.]*/));
+  $self->alnfilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
 
   $self->run_rnaz();
 }
@@ -117,7 +91,7 @@ sub run_rnaz {
   else{$rnaz_outfilename = "rnaz.out"}
   $rnaz_out = file($oodir,$rnaz_outfilename);
   open my $fh, ">", $rnaz_out;
-  my $rnaz_cmd = $rnaz." -l -d < ".$self->alnfile;
+  my $rnaz_cmd = $rnaz." -l -d < ".$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $rnaz_cmd, verbose => 0 );
   if( !$success ) {

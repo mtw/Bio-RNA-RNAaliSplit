@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-23 19:22:28 mtw>
+# Last changed Time-stamp: <2017-01-24 17:37:11 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
@@ -21,27 +21,6 @@ use IPC::Cmd qw(can_run run);
 
 my ($rnaalifold,$oodir);
 
-subtype 'MyFile4' => as class_type('Path::Class::File');
-
-coerce 'MyFile4'
-  => from 'Str'
-  => via { Path::Class::File->new($_) };
-
-subtype 'MyDir4' => as class_type('Path::Class::Dir');
-
-coerce 'MyDir4'
-  => from 'ArrayRef'
-  => via { Path::Class::Dir->new( @{ $_ } ) };
-
-has 'alnfile' => (
-		 is => 'ro',
-		 isa => 'MyFile4',
-		 predicate => 'has_alnfile',
-		 coerce => 1,
-		 required => 1,
-		 documentation => q(Alignment file in ClustalW format),
-		 );
-
 has 'alnfilebasename' => (
 			  is => 'rw',
 			  isa => 'Str',
@@ -61,27 +40,6 @@ has 'odirname' => (
 		   default => 'results',
 		   predicate => 'has_odirname',
 		  );
-
-has 'odir' => (
-	       is => 'rw',
-	       isa => 'MyDir4',
-	       predicate => 'has_odir',
-	       coerce => 1,
-	      );
-
-has 'P' => (
-	    is => 'rw',
-	    isa => 'Num',
-	    init_arg => undef,
-	    documentation => q(SVM RNA-class probability),
-	   );
-
-has 'z' => (
-	    is => 'rw',
-	    isa => 'Num',
-	    init_arg => undef,
-	    documentation => q(Mean z-score),
-	   );
 
 has 'sci' => (
 	      is => 'rw',
@@ -117,22 +75,22 @@ has 'consensus_covar_terms' => (
 				predicate => 'has_consensus_covar_terms',
 				init_arg => undef,
 			       );
-
+with 'FileDir';
 
 sub BUILD {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  confess "ERROR [$this_function] \$se+lf->alnfile not available"
-    unless ($self->has_alnfile);
+  confess "ERROR [$this_function] \$self->ifile not available"
+    unless ($self->has_ifile);
    $rnaalifold = can_run('RNAalifold') or
      croak "ERROR [$this_function] RNAalifold not found";
   unless($self->has_odir){
-    $self->odir( [$self->alnfile->dir,$self->odirname] );
+    $self->odir( [$self->ifile->dir,$self->odirname] );
     mkdir($self->odir);
   }
   $oodir = $self->odir->subdir("alifold");
   mkdir($oodir);
-  $self->alnfilebasename(fileparse($self->alnfile->basename, qr/\.[^.]*/));
+  $self->alnfilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
 
   $self->run_rnaalifold();
 }
@@ -165,7 +123,7 @@ sub run_rnaalifold {
   $alidotps = file($oodir,$alidotps_fn); # RNAalifold alidot.ps
 
   open my $fh, ">", $out;
-  my $cmd = $rnaalifold." --aln --color -r --cfactor 0.6 --nfactor 0.5 -p --sci ".$self->alnfile;
+  my $cmd = $rnaalifold." --aln --color -r --cfactor 0.6 --nfactor 0.5 -p --sci ".$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $cmd, verbose => 0 );
   if( !$success ) {
@@ -198,7 +156,7 @@ sub _parse_rnaalifold {
     next unless ($i == 1); # just parse consensus structure
     unless ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s?(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(\d+\.\d+)\]/){
       carp "ERROR [$this_function]  cannot parse RNAalifold output:";
-      croak $self->alnfile.":\n$buffer[$i]";
+      croak $self->ifile.":\n$buffer[$i]";
     }
     $self->consensus_struc($1);
     $self->consensus_mfe($2);

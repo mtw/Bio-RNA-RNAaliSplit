@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-23 19:04:56 mtw>
+# Last changed Time-stamp: <2017-01-24 17:36:14 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -26,28 +26,6 @@ subtype 'MyAln' => as class_type('Bio::AlignIO');
 coerce 'MyAln'
     => from 'HashRef'
     => via { Bio::AlignIO->new( %{ $_ } ) };
-
-subtype 'MyFile' => as class_type('Path::Class::File');
-
-coerce 'MyFile'
-  => from 'Str'
-  => via { Path::Class::File->new($_) };
-
-subtype 'MyDir' => as class_type('Path::Class::Dir');
-
-coerce 'MyDir'
-  => from 'ArrayRef'
-  => via { Path::Class::Dir->new( @{ $_ } ) };
-
-
-
-has 'infile' => (
-		 is => 'ro',
-		 isa => 'MyFile',
-		 predicate => 'has_infile',
-		 coerce => 1,
-		 required => 1,
-	      );
 
 has 'format' => ( 
 		 is => 'ro',
@@ -84,14 +62,6 @@ has 'odirname' => (
 		   predicate => 'has_odirname',
 		  );
 
-has 'odir' => (
-	       is => 'rw',
-	       isa => 'MyDir',
-	       predicate => 'has_odir',
-	       coerce => 1,
-	       init_arg => undef,
-	      );
-
 has 'dump' => (
 	       is => 'rw',
 	       isa => 'Num',
@@ -121,22 +91,23 @@ has 'alifold' => (
 		  init_arg => undef,
 		 );
 
+with 'FileDir';
 
 sub BUILD {
     my $self = shift;
     my $this_function = (caller(0))[3];
-    confess "ERROR [$this_function] \$self->infile not available"
-      unless ($self->has_infile);
-    $self->alignment({-file => $self->infile,
+    confess "ERROR [$this_function] \$self->ifile not available"
+      unless ($self->has_ifile);
+    $self->alignment({-file => $self->ifile,
 		      -format => $self->format,
 		      -displayname_flat => 1} ); # discard position in sequence IDs
     $self->next_aln($self->alignment->next_aln);
-    $self->odir( [$self->infile->dir,$self->odirname] );
+    $self->odir( [$self->ifile->dir,$self->odirname] );
     mkdir($self->odir);
-    $self->infilebasename(fileparse($self->infile->basename, qr/\.[^.]*/));
+    $self->infilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
 
     if ($self->has_dump_flag){
-      # dump infile as aln in ClustalW format to odir/input
+      # dump ifile as aln in ClustalW format to odir/input
       my $iodir = $self->odir->subdir('input');
       mkdir($iodir);
       my $ialnfile = file($iodir,$self->infilebasename.".aln");
@@ -151,7 +122,7 @@ sub BUILD {
 
     if ($self->next_aln->num_sequences == 2){ $self->_hamming() }
 
-    $self->alifold(WrapRNAalifold->new(alnfile => $self->infile,
+    $self->alifold(WrapRNAalifold->new(ifile => $self->ifile,
 				       odir => $self->odir));
   }
 
@@ -175,14 +146,20 @@ sub dump_subalignment {
   print $oinfo join "\n", @$what," ";
   close($oinfo);
 
-  # create subalignment .aln file
-  my $oalifile = file($oodir,$token.".aln");
-  my $oali = Bio::AlignIO->new(-file   => ">$oalifile",
-			       -format => "ClustalW",
-			       -flush  => 0,
-			       -displayname_flat => 1 );
+  # create subalignment in Clustal and Stockholm format
+  my $oalifile_clustal = file($oodir,$token.".aln");
+  my $oalifile_stockholm = file($oodir,$token.".stk");
+  my $oali_clustal = Bio::AlignIO->new(-file   => ">$oalifile_clustal",
+				       -format => "ClustalW",
+				       -flush  => 0,
+				       -displayname_flat => 1 );
+  my $oali_stockholm = Bio::AlignIO->new(-file   => ">$oalifile_stockholm",
+					 -format => "Stockholm",
+					 -flush  => 0,
+					 -displayname_flat => 1 );
   $aln = $self->next_aln->select_noncont(@$what);
-  $oali->write_aln( $aln );
+  $oali_clustal->write_aln( $aln );
+  $oali_stockholm->write_aln( $aln );
 
   # create subalignment fasta file
   my $ofafile = file($oodir,$token.".fa");
@@ -203,7 +180,7 @@ sub dump_subalignment {
   }
   close($seqfile);
 
-  return ( $oalifile );
+  return ( $oalifile_clustal,$oalifile_stockholm );
 }
 
 sub _hamming {
