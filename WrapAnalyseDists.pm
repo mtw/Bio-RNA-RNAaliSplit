@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 17:12:44 mtw>
+# Last changed Time-stamp: <2017-01-24 19:36:17 mtw>
 
 # WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
@@ -17,6 +17,7 @@ use Path::Class::File;
 use Path::Class::Dir;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
+use Array::Set qw(set_diff);
 
 my ($analysedists,$oodir);
 
@@ -76,9 +77,7 @@ sub BUILD {
   }
   $oodir = $self->odir->subdir("analysedists");
   mkdir($oodir);
-
-  my $d = $self->_get_dim();
-  $self->dim($d);
+  $self->dim( $self->_get_dim() );
 
   # do computation
   $self->_NeighborJoining();
@@ -113,12 +112,50 @@ sub _NeighborJoining {
     print join "", @$full_buf;
     croak $!;
   }
-  my @adout = split /\n/, $$stdout_buf[0];
-  foreach my $line( @adout){
-    print $fh $line,"\n";
-  }
+  my $stdout_buffer = join "",@$stdout_buf;
+  my @out = split /\n/, $stdout_buffer;
+  foreach my $line( @out){print $fh $line,"\n"}
   close($fh);
   rename "nj.ps", $nj_tree;
+  $self->_parse_nj($stdout_buffer);
+}
+
+# parse the output of AnalyseDists -Xn
+# populate array of hashes, each holding two sets of nodes corresponding to splits
+sub _parse_nj {
+  my ($self,$nj) = @_;
+  my $this_function = (caller(0))[3];
+  my %data = ();
+  my $num;
+  my $count = 1;
+  my @lines =  split /\n/,$nj;
+  foreach my $line (@lines){
+    my @s1 = ();
+    my @set1 = ();
+    my @set2 = ();
+    next if ($line =~ m/^>\s+\D/);
+    if ($line =~ m/^>\s+(\d+)/){$num = $1;next}
+    last if ($count++ >= $num);
+    my @all = (1..$num);
+    print " #### $line\n";
+    croak "ERROR [$this_function] Cannot parse neighbor joining graph line\n$line\n"
+      unless ($line =~ m/^\s+(\d+)\s+(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)/g);
+    my $i = $1;
+    my $j = $2;
+    print "$i -> $j\n";
+    push @{$data{$i}}, $j;
+    if (exists $data{$j}){push @{$data{$i}}, @{$data{$j}} };
+    print Dumper(\%data);
+    # populate set1
+    push @s1, $i;
+    push @s1, @{$data{$i}};
+    @set1 =  sort {$a <=> $b} @s1;
+    my @diff =  set_diff(\@all, \@set1);
+    @set2 =  sort {$a <=> $b} @{$diff[0]};
+    print Dumper(\@set1);
+    print Dumper(\@set2);
+    print "+++++++++++++++++++++++++++++++++++\n";
+  }
 }
 
 sub SplitDecomposition {
