@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-24 17:40:37 mtw>
+# Last changed Time-stamp: <2017-01-24 17:47:28 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -228,7 +228,6 @@ sub check_triangle {
 	croak "ERROR triangle inequation not satisfied i:$i j:$j k:$k"
 	  unless ($d_ij + $d_jk >= $d_ik);
       }
-
     }
   }
   print STDERR "Checked $count triangles ...\n";

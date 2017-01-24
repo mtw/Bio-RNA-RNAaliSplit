@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 17:41:26 mtw>
+# Last changed Time-stamp: <2017-01-24 17:58:07 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAz
 #
@@ -101,10 +101,8 @@ sub run_rnaz {
     croak $!;
   }
   my $stdout_buffer = join "", @$stdout_buf;
-  my @rnazout = split /\n/, $stdout_buffer;
-  foreach my $line( @rnazout){
-    print $fh $line,"\n";
-  }
+  my @out = split /\n/, $stdout_buffer;
+  foreach my $line( @out){print $fh $line,"\n"}
   close($fh);
 
   $self->_parse_rnaz($stdout_buffer);
