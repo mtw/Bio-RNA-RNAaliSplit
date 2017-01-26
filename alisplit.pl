@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-24 17:47:28 mtw>
+# Last changed Time-stamp: <2017-01-26 18:04:00 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -15,14 +15,17 @@ use WrapAnalyseDists;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
+use Path::Class;
 use Carp;
+use RNA;
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 #^^^^^^^^^^ Variables ^^^^^^^^^^^#
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 
 my $format = "ClustalW";
-my $method = "dHn"; # SCI | dHn | dHx
+my $method = "dHn"; # SCI | dHn | dHx | dBp
+my $outdir = "as";
 my @nseqs=();
 my ($i,$j,$dim,$alnfile, $Dfile);
 my @pw_alns = ();
@@ -32,6 +35,7 @@ my $check = 1;
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
                                            "method|m=s" => \$method,
+					   "out|o=s"    => \$outdir,
                                            "man"        => sub{pod2usage(-verbose => 2)},
                                            "help|h"     => sub{pod2usage(1)}
                                            );
@@ -44,6 +48,7 @@ unless (-f $alnfile){
 
 my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
 				       format => $format,
+				       odirn => $outdir,
 				       dump => 1);
 #print Dumper($AlignSplitObject);
 #die;
@@ -69,10 +74,9 @@ for($i=0;$i<$dim;$i++){
 # build distance matrix based on pairwise alignments
 print STDERR "Constructing distance matrix based on pairwise alignments ...\n";
 foreach my $ali (@pw_alns){
-  #print "processing $ali ...\n";
   my $pw_aso = AlignSplit->new(ifile => $ali,
-			       format => "ClustalW");
-  #print Dumper($pw_aso);
+			       format => "ClustalW",
+			       odirn => $outdir);
   my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
   if ($method eq "SCI"){
@@ -94,17 +98,28 @@ foreach my $ali (@pw_alns){
     # Hamming dist with all gap columns removed
     $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistX;
   }
-  else {croak "Method $method not available ..please use SCI|dHn|dHx"}
+  elsif ($method eq "dBp") {
+    my $so1 = $pw_aso->next_aln->get_seq_by_pos(1);
+    my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
+    my $seq1 = $so1->seq;
+    my $seq2 = $so2->seq;
+    my ($ss1,$mfe1) = RNA::fold($seq1);
+    my ($ss2,$mfe2) = RNA::fold($seq2);
+    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = RNA::bp_distance($ss1,$ss2);
+    # printf "%s\n%s [ %6.2f ]\n", $seq1, $ss1, $mfe1;
+    # printf "%s\n%s [ %6.2f ]\n", $seq2, $ss2, $mfe2;
+    # print "bp_didtance $D[$dim*($i-1)+($j-1)]\n";
+  }
+  else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp"}
 }
-
-
 
 # write matrix to file
 print STDERR "Writing distance matrix to file ...\n";
 if ($method eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,1,"S")}
 elsif ($method eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn")}
 elsif ($method eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx")}
-else { croak "Method $method not available ..please use SCI|dHn|dHx"}
+elsif ($method eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp")}
+else { croak "Method $method not available ..please use SCI|dHn|dHx|dBp"}
 
 # check triangle inequality
 if ($check == 1){
@@ -119,6 +134,9 @@ my $sd = WrapAnalyseDists->new(ifile => $Dfile,
 			       basename => $AlignSplitObject->infilebasename);
 print "Identified ".$sd->count." splits\n";
 
+# run RNAalifold for the input alignment
+my $alifold = WrapRNAalifold->new(ifile => $alnfile,
+				  odir => $AlignSplitObject->odir);
 # run RNAz for the input alignment
 my $rnaz = WrapRNAz->new(ifile => $alnfile,
 			 odir => $AlignSplitObject->odir);
@@ -143,6 +161,9 @@ while (my $sets = $sd->pop()){
 			    odir => $AlignSplitObject->odir);
     $have_rnazo1 = 1;
     ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
+    if($rnazo1->P > 1.1*$rnaz->P){$hint = "**"};
+    if($rnazo1->P > 1.2*$rnaz->P){$hint = "***"};
+    if($rnazo1->P > 1.3*$rnaz->P){$hint = "****"};
     $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
 			       odir => $AlignSplitObject->odir);
 #    print Dumper($ao1);
@@ -153,6 +174,9 @@ while (my $sets = $sd->pop()){
 			    odir => $AlignSplitObject->odir);
     $have_rnazo2 = 1;
     ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
+    if($rnazo2->P > 1.1*$rnaz->P){$hint = "**"};
+    if($rnazo2->P > 1.2*$rnaz->P){$hint = "***"};
+    if($rnazo2->P > 1.3*$rnaz->P){$hint = "****"};
     $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
 			       odir => $AlignSplitObject->odir);
 #    print Dumper($ao2);
@@ -170,12 +194,13 @@ while (my $sets = $sd->pop()){
 sub dump_matrix {
   my ($M, $d, $ad, $pd, $what) = @_;
   my ($i,$j,$info);
-  my $ad_mx = "ld.mx"; # AnalyseDists lower diagoinal distance matrix
-  my $pd_mx = "pd.dst"; # Phylip distance matrix
+  my $ad_mx = file($outdir,"ld.mx"); # AnalyseDists lower diagoinal distance matrix
+  my $pd_mx = file($outdir,"phylip.dst"); # Phylip distance matrix
 
   if ($what eq "S"){$info="> S (SCI distance)"}
   elsif($what eq "dHn"){$info="> H (Hamming distance with gap Ns)"}
   elsif($what eq "dHx"){$info="> H (Hamming distance with gaps removed)"}
+  elsif($what eq "dBp"){$info="> B (Base pair distance)"}
   else{$info="> H (unknown)"}
 
   if (defined $ad){ # print lower triangle matrix input for AanalyseDists
@@ -250,9 +275,10 @@ extracting sets of sequences that group together according to a
 decision value. The most natural decision value is the RNAz SVM
 RNA-classs probability.
 
-A tree is computed from pairwise distances of sequences in the input
-alignment and subsets of the alignment are derived by performing a
-split decomposition of the matrix of pairwise distances. These
+A neighbour joining tree is reconstructed from pairwise distances of
+sequences in the input alignment and subsets of the alignment are
+derived by splitting at each edge of the NJ tree as well as performing
+a split decomposition of the matrix of pairwise distances. These
 subsets/subalignments are then evaluated according to the same
 decision value and a decision is made whether a subalignment performs
 better than the original alignment.This can be used to discriminate
@@ -269,14 +295,20 @@ A multiple sequence alignment in ClustalW format
 =item B<--method|-m>
 
 Method to compute pairwise ditances. Available options are 'dHn',
-'dHx' and 'SCI'. The first and second computes pairwise proximity as
-Hamming distance on the s=level of sequences. 'dHn' replaces gaps with
-'N', whereas 'dHx' removes all gap columns (is not yet
-implemented). 'SCI' computes the distance as 1-log(SCI), based on a
+'dHx', 'dBp', and 'SCI'. The first and second compute pairwise Hamming
+distances of sequences, where 'dHn' replaces gaps with 'N', whereas
+'dHx' removes all gap columns (is not yet implemented). 'dBp' folds
+RNA sequences into thir MFE structures and computes pairwise base pair
+distances. 'SCI' computes the distance as 1-log(SCI), based on a
 truncated strucure conservation index of two sequences. The latter,
 however, is not a metric and therefore often results in negative
 branch lengths in Neighbor Joining trees. Use with caution. [default:
 'dHn']
+
+=item B<--out|-o>
+
+Output base directory. Temporary data and results will be written to
+this directory
 
 =back
 

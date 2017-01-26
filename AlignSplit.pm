@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 17:36:14 mtw>
+# Last changed Time-stamp: <2017-01-26 17:27:56 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -56,12 +56,6 @@ has 'next_aln' => (
 		   init_arg => undef,
 		  );
 
-has 'odirname' => (
-		   is => 'ro',
-		   default => 'as',
-		   predicate => 'has_odirname',
-		  );
-
 has 'dump' => (
 	       is => 'rw',
 	       isa => 'Num',
@@ -102,7 +96,7 @@ sub BUILD {
 		      -format => $self->format,
 		      -displayname_flat => 1} ); # discard position in sequence IDs
     $self->next_aln($self->alignment->next_aln);
-    $self->odir( [$self->ifile->dir,$self->odirname] );
+    $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
     $self->infilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
 
@@ -122,8 +116,9 @@ sub BUILD {
 
     if ($self->next_aln->num_sequences == 2){ $self->_hamming() }
 
-    $self->alifold(WrapRNAalifold->new(ifile => $self->ifile,
-				       odir => $self->odir));
+    my $afo = WrapRNAalifold->new(ifile => $self->ifile,
+				  odir => $self->odir);
+    $self->alifold($afo);
   }
 
 sub dump_subalignment {

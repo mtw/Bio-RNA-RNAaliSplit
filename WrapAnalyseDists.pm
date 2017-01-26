@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 19:36:17 mtw>
+# Last changed Time-stamp: <2017-01-26 17:55:16 mtw>
 
 # WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
@@ -18,20 +18,16 @@ use Path::Class::Dir;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
 use Array::Set qw(set_diff);
+use Digest::MD5 qw(md5_base64);
 
 my ($analysedists,$oodir);
+my %sets = ();
 
 has 'basename' => (
 		   is => 'rw',
 		   isa => 'Str',
 		   predicate => 'has_basename',
 		   );
-
-has 'odirname' => (
-		   is => 'ro',
-		   default => 'as',
-		   predicate => 'has_odirname',
-		  );
 
 has 'splits' => (
 		 is => 'rw',
@@ -69,10 +65,8 @@ sub BUILD {
    $analysedists = can_run('AnalyseDists') or
     croak "ERROR [$this_function] AnalyseDists not found";
   unless($self->has_odir){
-    unless($self->has_odirname){
-      self->odirname("as");
-    }
-    $self->odir( [$self->ifile->dir,$self->odirname] );
+    unless($self->has_odirn){self->odirname("as")}
+    $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
   }
   $oodir = $self->odir->subdir("analysedists");
@@ -80,12 +74,12 @@ sub BUILD {
   $self->dim( $self->_get_dim() );
 
   # do computation
-  $self->_NeighborJoining();
+  $self->NeighborJoining();
   $self->SplitDecomposition();
   $self->nr_splits($self->count);
 }
 
-sub _NeighborJoining {
+sub NeighborJoining {
   # TODO  warn if negative branch lengths occur
   my $self = shift;
   my $this_function = (caller(0))[3];
@@ -139,22 +133,33 @@ sub _parse_nj {
     my @all = (1..$num);
     print " #### $line\n";
     croak "ERROR [$this_function] Cannot parse neighbor joining graph line\n$line\n"
-      unless ($line =~ m/^\s+(\d+)\s+(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)/g);
+      unless ($line =~ m/^\s*(\d+)\s+(\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)/g);
     my $i = $1;
     my $j = $2;
-    print "$i -> $j\n";
+
     push @{$data{$i}}, $j;
     if (exists $data{$j}){push @{$data{$i}}, @{$data{$j}} };
-    print Dumper(\%data);
-    # populate set1
-    push @s1, $i;
+    #    print Dumper(\%data);
+    push @s1, $i;  # populate set1
     push @s1, @{$data{$i}};
     @set1 =  sort {$a <=> $b} @s1;
     my @diff =  set_diff(\@all, \@set1);
     @set2 =  sort {$a <=> $b} @{$diff[0]};
-    print Dumper(\@set1);
-    print Dumper(\@set2);
-    print "+++++++++++++++++++++++++++++++++++\n";
+    my $set1_key = md5_base64(join "_", @set1);
+    my $set2_key = md5_base64(join "_", @set2);
+    if (!exists($sets{$set1_key}) && !exists($sets{$set2_key})){
+      $sets{$set1_key} = \@set1; # lookup table for previously seen sets
+      $sets{$set2_key} = \@set2;
+      next if (scalar(@set1) == "0"); # skip empty sets (ie input alignment)
+      next if (scalar(@set2) == "0");
+      $self->add( {S1=>\@set1,S2=>\@set2,ori=>"NJ"} );
+    }
+    else{
+      print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
+    }
+#    print Dumper(\@set1);
+#    print Dumper(\@set2);
+#    print "+++++++++++++++++++++++++++++++++++\n";
   }
 }
 
@@ -204,10 +209,19 @@ sub _parse_sd {
     foreach my $i (@moo){
       push (@bar, $i) unless ( grep {$i == $_}@foo );
     }
-    $self->add( {S1=>\@foo,S2=>\@bar } );
+    my @set1 = sort {$a <=> $b} @foo;
+    my @set2 = sort {$a <=> $b} @bar;
+    my $set1_key = md5_base64(join "_", @set1);
+    my $set2_key = md5_base64(join "_", @set2);
+    if (!exists($sets{$set1_key}) && !exists($sets{$set2_key})){
+      $sets{$set1_key} = \@set1; # lookup table for previously seen sets
+      $sets{$set2_key} = \@set2;
+      $self->add( {S1=>\@set1,S2=>\@set2,ori=>"SD"} );
+    }
+    else{
+      print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
+    }
   }
-  croak "ERROR [$this_function] expected $num splits, but parsed ".$self->count
-    unless ($self->count == $num);
 }
 
 sub _get_dim {

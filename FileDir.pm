@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 17:10:33 mtw>
+# Last changed Time-stamp: <2017-01-26 17:29:31 mtw>
 
 # FileDir.pm: Moose Role for basic file IO
 
@@ -24,10 +24,10 @@ coerce 'MyDir'
   => via { Path::Class::Dir->new( @{ $_ } ) };
 
 has 'ifile' => (
-	       is => 'ro',
-	       isa => 'MyFile',
-	       predicate => 'has_ifile',
-	       coerce => 1,
+		is => 'ro',
+		isa => 'MyFile',
+		predicate => 'has_ifile',
+		coerce => 1,
 	      );
 
 has 'odir' => (
@@ -35,8 +35,13 @@ has 'odir' => (
 	       isa => 'MyDir',
 	       predicate => 'has_odir',
 	       coerce => 1,
-	       init_arg => undef,
 	      );
+
+has 'odirn' => ( # custom output dir name
+		is => 'rw',
+		default => 'results',
+		predicate => 'has_odirn',
+	       );
 
 
 no Moose;

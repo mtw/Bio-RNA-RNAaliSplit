@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 17:37:11 mtw>
+# Last changed Time-stamp: <2017-01-26 17:51:25 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
@@ -34,12 +34,6 @@ has 'bn' => (
 	     predicate => 'has_basename',
 	     documentation => q(Set this to override output basename),
 	    );
-
-has 'odirname' => (
-		   is => 'ro',
-		   default => 'results',
-		   predicate => 'has_odirname',
-		  );
 
 has 'sci' => (
 	      is => 'rw',
@@ -82,10 +76,11 @@ sub BUILD {
   my $this_function = (caller(0))[3];
   confess "ERROR [$this_function] \$self->ifile not available"
     unless ($self->has_ifile);
-   $rnaalifold = can_run('RNAalifold') or
-     croak "ERROR [$this_function] RNAalifold not found";
+  $rnaalifold = can_run('RNAalifold') or
+    croak "ERROR [$this_function] RNAalifold not found";
   unless($self->has_odir){
-    $self->odir( [$self->ifile->dir,$self->odirname] );
+    unless($self->has_odirn){self->odirname("as")}
+    $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
   }
   $oodir = $self->odir->subdir("alifold");

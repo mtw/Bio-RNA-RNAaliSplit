@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-24 17:58:07 mtw>
+# Last changed Time-stamp: <2017-01-26 17:53:34 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAz
 #
@@ -35,12 +35,6 @@ has 'bn' => (
 	     documentation => q(Set this to override output basename),
 	    );
 
-has 'odirname' => (
-		   is => 'ro',
-		   default => 'results',
-		   predicate => 'has_odirname',
-		  );
-
 has 'P' => (
 	    is => 'rw',
 	    isa => 'Num',
@@ -72,7 +66,8 @@ sub BUILD {
    $rnaz = can_run('RNAz') or
      croak "ERROR [$this_function] RNAz not found";
   unless($self->has_odir){
-    $self->odir( [$self->ifile->dir,$self->odirname] );
+    unless($self->has_odirn){self->odirname("as")}
+    $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
   }
   $oodir = $self->odir->subdir("rnaz");
