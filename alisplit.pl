@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-26 18:04:00 mtw>
+# Last changed Time-stamp: <2017-01-30 23:32:26 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -140,9 +140,9 @@ my $alifold = WrapRNAalifold->new(ifile => $alnfile,
 # run RNAz for the input alignment
 my $rnaz = WrapRNAz->new(ifile => $alnfile,
 			 odir => $AlignSplitObject->odir);
-print join "\t", "#SVM prob","SCI","Z-score","hit","sequences","alignment\n";
-print join "\t", $rnaz->P,$rnaz->sci,$rnaz->z,"O",$dim,$alnfile."\n";
-print "-----------------------------------------\n";
+print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","alignment\n";
+print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alnfile."\n";
+print "-------------------------------------------------------------\n";
 
 # extract split sets and run RNAz on each of them
 my $splitnr=1;
@@ -167,7 +167,7 @@ while (my $sets = $sd->pop()){
     $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
 			       odir => $AlignSplitObject->odir);
 #    print Dumper($ao1);
-    print join "\t",$rnazo1->P,$rnazo1->sci,$rnazo1->z,$hint,scalar(@$set1),$sa1_c."\n";
+    print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$sa1_c."\n";
   }
   if( scalar(@$set2) > 1){
     $rnazo2 = WrapRNAz->new(ifile => $sa2_c,
@@ -180,7 +180,7 @@ while (my $sets = $sd->pop()){
     $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
 			       odir => $AlignSplitObject->odir);
 #    print Dumper($ao2);
-    print join "\t",$rnazo2->P,$rnazo2->sci,$rnazo2->z,$hint,scalar(@$set2),$sa2_c."\n";
+    print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$sa2_c."\n";
   }
   $splitnr++;
 }
