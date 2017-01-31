@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-26 17:27:56 mtw>
+# Last changed Time-stamp: <2017-01-31 11:41:49 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -138,7 +138,11 @@ sub dump_subalignment {
   # create info file 
   my $oinfofile = file($oodir,$token.".info");
   open my $oinfo, ">", $oinfofile or die $!;
-  print $oinfo join "\n", @$what," ";
+  foreach my $entry (@$what){
+    my $key = $entry-1;
+    my $val = ${$self->next_aln}{_order}->{$key};
+    print $oinfo join "\t", ($entry, $val, "\n");
+  }
   close($oinfo);
 
   # create subalignment in Clustal and Stockholm format

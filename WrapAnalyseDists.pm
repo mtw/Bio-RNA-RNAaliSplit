@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-26 17:55:16 mtw>
+# Last changed Time-stamp: <2017-01-31 11:45:45 mtw>
 
 # WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
@@ -131,7 +131,7 @@ sub _parse_nj {
     if ($line =~ m/^>\s+(\d+)/){$num = $1;next}
     last if ($count++ >= $num);
     my @all = (1..$num);
-    print " #### $line\n";
+    #print " #### $line\n";
     croak "ERROR [$this_function] Cannot parse neighbor joining graph line\n$line\n"
       unless ($line =~ m/^\s*(\d+)\s+(\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)/g);
     my $i = $1;
@@ -155,7 +155,7 @@ sub _parse_nj {
       $self->add( {S1=>\@set1,S2=>\@set2,ori=>"NJ"} );
     }
     else{
-      print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
+      #print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
     }
 #    print Dumper(\@set1);
 #    print Dumper(\@set2);
@@ -219,7 +219,7 @@ sub _parse_sd {
       $self->add( {S1=>\@set1,S2=>\@set2,ori=>"SD"} );
     }
     else{
-      print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
+    #  print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
     }
   }
 }

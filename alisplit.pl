@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-30 23:32:26 mtw>
+# Last changed Time-stamp: <2017-01-31 12:57:49 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -27,10 +27,7 @@ my $format = "ClustalW";
 my $method = "dHn"; # SCI | dHn | dHx | dBp
 my $outdir = "as";
 my @nseqs=();
-my ($i,$j,$dim,$alnfile, $Dfile);
-my @pw_alns = ();
-my @D = ();
-my $check = 1;
+my ($dim,$alnfile);
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
@@ -51,88 +48,18 @@ my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
 				       odirn => $outdir,
 				       dump => 1);
 #print Dumper($AlignSplitObject);
+print Dumper(${$AlignSplitObject->next_aln}{_order});
 #die;
 $dim = $AlignSplitObject->next_aln->num_sequences;
 
-# extract all pairwise alignments
-print STDERR "Extracting pairwise alignments ...\n";
-for ($i=1;$i<$dim;$i++){
-  for($j=$i+1;$j<=$dim;$j++){
-    my $token = join "_", "pw",$i,$j;
-    my ($sa_clustal,$sa_stockholm) = $AlignSplitObject->dump_subalignment("pairwise", $token, [$i,$j]);
-    push @pw_alns, $sa_clustal->stringify;
-  }
-}
-
-# initialize distance matrix
-for($i=0;$i<$dim;$i++){
-  for ($j=0;$j<$dim;$j++){
-    $D[$dim*$i+$j] = 0.;
-  }
-}
-
-# build distance matrix based on pairwise alignments
-print STDERR "Constructing distance matrix based on pairwise alignments ...\n";
-foreach my $ali (@pw_alns){
-  my $pw_aso = AlignSplit->new(ifile => $ali,
-			       format => "ClustalW",
-			       odirn => $outdir);
-  my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
-
-  if ($method eq "SCI"){
-    # distance = -log( [normalized] pairwise SCI)
-    my ($sci,$dsci);
-    if($pw_aso->sci > 1){$sci = 1}
-    elsif ($pw_aso->sci == 0.){$sci = 0.000001}
-    else { $sci = $pw_aso->sci; }
-    $dsci = -1*log($sci)/log(10);
-    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dsci;
-    #  print "$i -> $j : $sci\t$dsci\n";
-  }
-  elsif ($method eq "dHn") {
-    # Hamming dist with gaps replaced by Ns
-    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistN;
-  }
-  elsif ($method eq "dHx") {
-    # TODO compute $pw_aso->hammingdistX in AlignSplit.pm
-    # Hamming dist with all gap columns removed
-    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistX;
-  }
-  elsif ($method eq "dBp") {
-    my $so1 = $pw_aso->next_aln->get_seq_by_pos(1);
-    my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
-    my $seq1 = $so1->seq;
-    my $seq2 = $so2->seq;
-    my ($ss1,$mfe1) = RNA::fold($seq1);
-    my ($ss2,$mfe2) = RNA::fold($seq2);
-    $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = RNA::bp_distance($ss1,$ss2);
-    # printf "%s\n%s [ %6.2f ]\n", $seq1, $ss1, $mfe1;
-    # printf "%s\n%s [ %6.2f ]\n", $seq2, $ss2, $mfe2;
-    # print "bp_didtance $D[$dim*($i-1)+($j-1)]\n";
-  }
-  else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp"}
-}
-
-# write matrix to file
-print STDERR "Writing distance matrix to file ...\n";
-if ($method eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,1,"S")}
-elsif ($method eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn")}
-elsif ($method eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx")}
-elsif ($method eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp")}
-else { croak "Method $method not available ..please use SCI|dHn|dHx|dBp"}
-
-# check triangle inequality
-if ($check == 1){
-  print STDERR "Checking triangle inequality ...\n";
-  my $result = check_triangle($dim,\@D);
-}
+my $dmfile = make_distance_matrix($AlignSplitObject,$method);
 
 # compute Neighbor Joining tree and do split decomposition
 print STDERR "Perform Split Decomposition ...\n";
-my $sd = WrapAnalyseDists->new(ifile => $Dfile,
+my $sd = WrapAnalyseDists->new(ifile => $dmfile,
 			       odir => $AlignSplitObject->odir,
 			       basename => $AlignSplitObject->infilebasename);
-print "Identified ".$sd->count." splits\n";
+print STDERR "Identified ".$sd->count." splits\n";
 
 # run RNAalifold for the input alignment
 my $alifold = WrapRNAalifold->new(ifile => $alnfile,
@@ -190,9 +117,92 @@ while (my $sets = $sd->pop()){
 # subroutines #
 ###############
 
+sub make_distance_matrix {
+  my ($ASO,$m) = @_;
+  my ($i,$j,$Dfile);
+  my @pw_alns = ();
+  my @D = ();
+  my $check = 1;
+  my $dim = $ASO->next_aln->num_sequences;
+
+  # extract all pairwise alignments
+  print STDERR "Extracting pairwise alignments ...\n";
+  for ($i=1;$i<$dim;$i++){
+    for($j=$i+1;$j<=$dim;$j++){
+      my $token = join "_", "pw",$i,$j;
+      my ($sa_clustal,$sa_stockholm) = $ASO->dump_subalignment("pairwise", $token, [$i,$j]);
+      push @pw_alns, $sa_clustal->stringify;
+    }
+  }
+
+  # initialize distance matrix
+  for($i=0;$i<$dim;$i++){
+    for ($j=0;$j<$dim;$j++){
+      $D[$dim*$i+$j] = 0.;
+    }
+  }
+
+  # build distance matrix based on pairwise alignments
+  print STDERR "Constructing distance matrix based on pairwise alignments ...\n";
+  foreach my $ali (@pw_alns){
+    my $pw_aso = AlignSplit->new(ifile => $ali,
+				 format => "ClustalW",
+				 odirn => $outdir);
+    my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
+
+    if ($m eq "SCI"){
+      # distance = -log( [normalized] pairwise SCI)
+      my ($sci,$dsci);
+      if($pw_aso->sci > 1){$sci = 1}
+      elsif ($pw_aso->sci == 0.){$sci = 0.000001}
+      else { $sci = $pw_aso->sci; }
+      $dsci = -1*log($sci)/log(10);
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dsci;
+      #  print "$i -> $j : $sci\t$dsci\n";
+    }
+    elsif ($m eq "dHn") {
+      # Hamming dist with gaps replaced by Ns
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistN;
+    }
+    elsif ($m eq "dHx") {
+      # TODO compute $pw_aso->hammingdistX in AlignSplit.pm
+      # Hamming dist with all gap columns removed
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistX;
+    }
+    elsif ($m eq "dBp") {
+      my $so1 = $pw_aso->next_aln->get_seq_by_pos(1);
+      my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
+      my $seq1 = $so1->seq;
+      my $seq2 = $so2->seq;
+      my ($ss1,$mfe1) = RNA::fold($seq1);
+      my ($ss2,$mfe2) = RNA::fold($seq2);
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = RNA::bp_distance($ss1,$ss2);
+      # printf "%s\n%s [ %6.2f ]\n", $seq1, $ss1, $mfe1;
+      # printf "%s\n%s [ %6.2f ]\n", $seq2, $ss2, $mfe2;
+      # print "bp_didtance $D[$dim*($i-1)+($j-1)]\n";
+    }
+    else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp"}
+  }
+
+  # write matrix to file
+  print STDERR "Writing distance matrix to file ...\n";
+  if ($m eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,1,"S",$ASO)}
+  elsif ($m eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn",$ASO)}
+  elsif ($m eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx",$ASO)}
+  elsif ($m eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp",$ASO)}
+  else { croak "Method $m not available ..please use SCI|dHn|dHx|dBp"}
+
+  # check triangle inequality
+  if ($check == 1){
+    print STDERR "Checking triangle inequality ...\n";
+    my $result = check_triangle($dim,\@D);
+  }
+  return $Dfile;
+}
+
 
 sub dump_matrix {
-  my ($M, $d, $ad, $pd, $what) = @_;
+  my ($M,$d,$ad,$pd,$what,$aso) = @_;
   my ($i,$j,$info);
   my $ad_mx = file($outdir,"ld.mx"); # AnalyseDists lower diagoinal distance matrix
   my $pd_mx = file($outdir,"phylip.dst"); # Phylip distance matrix
@@ -227,7 +237,10 @@ sub dump_matrix {
     open my $matrix, ">", $pd_mx  or die $!;
     print $matrix "$d\n";
     for ($i=0;$i<$d;$i++){
-      print $matrix eval($i+1)." ";
+      my $val = ${$aso->next_aln}{_order}->{$i};
+      $val=~s/\//_/g;
+      my $id = join '_', eval($i+1),$val;
+      print $matrix $id." ";
 	for($j=0;$j<$d;$j++){
 	  printf $matrix "%6.4f ", @$M[$d*$i+$j];
 	}
