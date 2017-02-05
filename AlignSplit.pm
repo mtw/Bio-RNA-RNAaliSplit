@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-31 11:41:49 mtw>
+# Last changed Time-stamp: <2017-02-05 23:23:26 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -19,7 +19,6 @@ use File::Basename;
 use IPC::Cmd qw(can_run run);
 use Bio::AlignIO;
 use Storable 'dclone';
-use WrapRNAalifold;
 
 subtype 'MyAln' => as class_type('Bio::AlignIO');
 
@@ -78,13 +77,6 @@ has 'hammingdistX' => (
 		       init_arg => undef,
 		      );
 
-has 'alifold' => (
-		  is => 'rw',
-		  isa => 'WrapRNAalifold',
-		  predicate => 'has_alifold',
-		  init_arg => undef,
-		 );
-
 with 'FileDir';
 
 sub BUILD {
@@ -115,10 +107,6 @@ sub BUILD {
     }
 
     if ($self->next_aln->num_sequences == 2){ $self->_hamming() }
-
-    my $afo = WrapRNAalifold->new(ifile => $self->ifile,
-				  odir => $self->odir);
-    $self->alifold($afo);
   }
 
 sub dump_subalignment {

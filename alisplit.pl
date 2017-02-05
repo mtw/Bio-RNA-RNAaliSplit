@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-01-31 12:57:49 mtw>
+# Last changed Time-stamp: <2017-02-05 23:36:42 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -11,6 +11,7 @@ use strict;
 use warnings;
 use AlignSplit;
 use WrapRNAz;
+use WrapRNAalifold;
 use WrapAnalyseDists;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
@@ -26,6 +27,7 @@ use RNA;
 my $format = "ClustalW";
 my $method = "dHn"; # SCI | dHn | dHx | dBp
 my $outdir = "as";
+my $verbose = undef;
 my @nseqs=();
 my ($dim,$alnfile);
 
@@ -33,6 +35,7 @@ Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
                                            "method|m=s" => \$method,
 					   "out|o=s"    => \$outdir,
+					   "verbose|v"  => sub{$verbose = 1},
                                            "man"        => sub{pod2usage(-verbose => 2)},
                                            "help|h"     => sub{pod2usage(1)}
                                            );
@@ -48,7 +51,7 @@ my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
 				       odirn => $outdir,
 				       dump => 1);
 #print Dumper($AlignSplitObject);
-print Dumper(${$AlignSplitObject->next_aln}{_order});
+#print Dumper(${$AlignSplitObject->next_aln}{_order});
 #die;
 $dim = $AlignSplitObject->next_aln->num_sequences;
 
@@ -64,6 +67,9 @@ print STDERR "Identified ".$sd->count." splits\n";
 # run RNAalifold for the input alignment
 my $alifold = WrapRNAalifold->new(ifile => $alnfile,
 				  odir => $AlignSplitObject->odir);
+my $alifold_ribosum = WrapRNAalifold->new(ifile => $alnfile,
+					  odir => $AlignSplitObject->odir,
+					  ribosum => 1);
 # run RNAz for the input alignment
 my $rnaz = WrapRNAz->new(ifile => $alnfile,
 			 odir => $AlignSplitObject->odir);
@@ -74,7 +80,8 @@ print "-------------------------------------------------------------\n";
 # extract split sets and run RNAz on each of them
 my $splitnr=1;
 while (my $sets = $sd->pop()){
-  my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$ao1,$ao2,$hint) = (0)x7;
+  my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$hint) = (0)x5;
+  my ($ao1,$ao2,$ao1_ribosum,$ao2_ribosum) = (0)x4;
   my ($sa1_c,$sa1_s,$sa2_c,$sa2_s); # subalignments in Clustal and Stockholm
   my $set1 = $$sets{S1};
   my $set2 = $$sets{S2};
@@ -93,7 +100,9 @@ while (my $sets = $sd->pop()){
     if($rnazo1->P > 1.3*$rnaz->P){$hint = "****"};
     $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
 			       odir => $AlignSplitObject->odir);
-#    print Dumper($ao1);
+    $ao1_ribosum = WrapRNAalifold->new(ifile => $sa1_c,
+				       odir => $AlignSplitObject->odir,
+				       ribosum => 1);
     print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$sa1_c."\n";
   }
   if( scalar(@$set2) > 1){
@@ -106,7 +115,9 @@ while (my $sets = $sd->pop()){
     if($rnazo2->P > 1.3*$rnaz->P){$hint = "****"};
     $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
 			       odir => $AlignSplitObject->odir);
-#    print Dumper($ao2);
+    $ao2_ribosum = WrapRNAalifold->new(ifile => $sa2_c,
+				       odir => $AlignSplitObject->odir,
+				       ribosum => 1);
     print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$sa2_c."\n";
   }
   $splitnr++;
@@ -186,10 +197,10 @@ sub make_distance_matrix {
 
   # write matrix to file
   print STDERR "Writing distance matrix to file ...\n";
-  if ($m eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,1,"S",$ASO)}
-  elsif ($m eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn",$ASO)}
-  elsif ($m eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx",$ASO)}
-  elsif ($m eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp",$ASO)}
+  if ($m eq "SCI"){ $Dfile = dump_matrix(\@D,$dim,1,1,"S",$ASO,$verbose)}
+  elsif ($m eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn",$ASO,$verbose)}
+  elsif ($m eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx",$ASO,$verbose)}
+  elsif ($m eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp",$ASO,$verbose)}
   else { croak "Method $m not available ..please use SCI|dHn|dHx|dBp"}
 
   # check triangle inequality
@@ -202,11 +213,14 @@ sub make_distance_matrix {
 
 
 sub dump_matrix {
-  my ($M,$d,$ad,$pd,$what,$aso) = @_;
+  my ($M,$d,$ad,$pd,$what,$aso,$verbos) = @_;
   my ($i,$j,$info);
-  my $ad_mx = file($outdir,"ld.mx"); # AnalyseDists lower diagoinal distance matrix
-  my $pd_mx = file($outdir,"phylip.dst"); # Phylip distance matrix
-
+  my $ad_mx = file($aso->odir,"ld.mx"); # AnalyseDists lower diagoinal distance matrix
+  my $pd_mx = file($aso->odir,"phylip.dst"); # Phylip distance matrix
+  if(defined($verbos)){
+    print STDERR "Analysedists matrix \$ad_mx is $ad_mx\n";
+    print STDERR "Phylip matrix \$pd_mx is $pd_mx\n";
+  }
   if ($what eq "S"){$info="> S (SCI distance)"}
   elsif($what eq "dHn"){$info="> H (Hamming distance with gap Ns)"}
   elsif($what eq "dHx"){$info="> H (Hamming distance with gaps removed)"}
