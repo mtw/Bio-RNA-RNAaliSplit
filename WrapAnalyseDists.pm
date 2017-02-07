@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-31 11:45:45 mtw>
+# Last changed Time-stamp: <2017-02-07 13:24:12 mtw>
 
 # WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
@@ -181,12 +181,11 @@ sub SplitDecomposition {
     print join "", @$full_buf;
     croak $!;
   }
-  my @sdout = split /\n/, $$stdout_buf[0];
-  foreach my $line( @sdout){
-    print $fh $line,"\n";
-  }
+  my $stdout_buffer = join "", @$stdout_buf;
+  my @out = split /\n/, $stdout_buffer;
+  foreach my $line( @out){print $fh $line,"\n"}
   close($fh);
-  $self->_parse_sd($$stdout_buf[0]); # parse split graph data
+  $self->_parse_sd($stdout_buffer); # parse split graph data
 }
 
 # parse the output of AnalyseDists -Xs
@@ -199,10 +198,10 @@ sub _parse_sd {
   foreach my $line (@lines){
     next if ($line =~ m/^>\s+\D/);
     if ($line =~ m/^>\s+(\d+)/){$num = $1;next}
-    last if ($line =~ m/^\s+\d+\.\d+\s+\:\s+\{\s+\[Split prime fraction\]\s+\}/g );
+    last if ($line =~ m/^\s*\d+\.\d+\s+\:\s+\{\s+\[Split prime fraction\]\s+\}/g );
  #   print "$line\n";
     croak "ERROR [$this_function] Cannot parse split graph line\n$line\n"
-      unless ($line =~ m/^\s+\d+\s+\d+\.\d+\s+:\s+\{\s+([\d+\s+]+)\|/g);
+      unless ($line =~ m/^\s*\d+\s+\d+\.\d+\s+:\s+\{\s+([\d+\s+]+)\|/g);
     my @foo = split /\s+/, $1; # set 1
     my @moo = (1 .. $self->dim);
     my @bar = (); # set 2

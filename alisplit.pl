@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-05 23:36:42 mtw>
+# Last changed Time-stamp: <2017-02-07 18:48:28 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -25,16 +25,20 @@ use RNA;
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 
 my $format = "ClustalW";
-my $method = "dHn"; # SCI | dHn | dHx | dBp
+my $method = "dHn"; # SCI | dHn | dHx | dBp | dHB
 my $outdir = "as";
 my $verbose = undef;
 my @nseqs=();
 my ($dim,$alnfile);
+my $scaleH = 1.;
+my $scaleB = 1.;
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
                                            "method|m=s" => \$method,
 					   "out|o=s"    => \$outdir,
+					   "scaleH"     => \$scaleH,
+					   "scaleB"     => \$scaleB,
 					   "verbose|v"  => sub{$verbose = 1},
                                            "man"        => sub{pod2usage(-verbose => 2)},
                                            "help|h"     => sub{pod2usage(1)}
@@ -161,6 +165,17 @@ sub make_distance_matrix {
 				 odirn => $outdir);
     my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
+    my $dHn = $pw_aso->hammingdistN;
+    my $dHx = $pw_aso->hammingdistX;
+    my $so1 = $pw_aso->next_aln->get_seq_by_pos(1);
+    my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
+    my $seq1 = $so1->seq;
+    my $seq2 = $so2->seq;
+    my ($ss1,$mfe1) = RNA::fold($seq1);
+    my ($ss2,$mfe2) = RNA::fold($seq2);
+    my $dBp = RNA::bp_distance($ss1,$ss2);
+    my $dHB = $scaleH*$dHn + $scaleB*$dBp;
+
     if ($m eq "SCI"){
       # distance = -log( [normalized] pairwise SCI)
       my ($sci,$dsci);
@@ -171,28 +186,19 @@ sub make_distance_matrix {
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dsci;
       #  print "$i -> $j : $sci\t$dsci\n";
     }
-    elsif ($m eq "dHn") {
-      # Hamming dist with gaps replaced by Ns
-      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistN;
+    elsif ($m eq "dHn") { # hamming dist with gaps replaced by Ns
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHn;
     }
-    elsif ($m eq "dHx") {
-      # TODO compute $pw_aso->hammingdistX in AlignSplit.pm
-      # Hamming dist with all gap columns removed
-      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $pw_aso->hammingdistX;
+    elsif ($m eq "dHx") { # hamming dist with all gap columns removed
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHx;
     }
-    elsif ($m eq "dBp") {
-      my $so1 = $pw_aso->next_aln->get_seq_by_pos(1);
-      my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
-      my $seq1 = $so1->seq;
-      my $seq2 = $so2->seq;
-      my ($ss1,$mfe1) = RNA::fold($seq1);
-      my ($ss2,$mfe2) = RNA::fold($seq2);
-      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = RNA::bp_distance($ss1,$ss2);
-      # printf "%s\n%s [ %6.2f ]\n", $seq1, $ss1, $mfe1;
-      # printf "%s\n%s [ %6.2f ]\n", $seq2, $ss2, $mfe2;
-      # print "bp_didtance $D[$dim*($i-1)+($j-1)]\n";
+    elsif ($m eq "dBp") { # base pairdistance
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dBp;
     }
-    else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp"}
+    elsif($m eq "dHB") { # combined hamming + basepair distance
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHB;
+    }
+    else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp|dHB"}
   }
 
   # write matrix to file
@@ -201,7 +207,8 @@ sub make_distance_matrix {
   elsif ($m eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn",$ASO,$verbose)}
   elsif ($m eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx",$ASO,$verbose)}
   elsif ($m eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp",$ASO,$verbose)}
-  else { croak "Method $m not available ..please use SCI|dHn|dHx|dBp"}
+  elsif ($m eq "dHB"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHB",$ASO,$verbose)}
+  else { croak "Method $m not available ..please use SCI|dHn|dHx|dBp|dHB"}
 
   # check triangle inequality
   if ($check == 1){

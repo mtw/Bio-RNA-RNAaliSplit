@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-05 22:50:22 mtw>
+# Last changed Time-stamp: <2017-02-07 14:00:54 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
@@ -161,7 +161,7 @@ sub _parse_rnaalifold {
 
   foreach my $i (0..$#buffer){
     next unless ($i == 1); # just parse consensus structure
-    unless ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s?(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(\d+\.\d+)\]/){
+    unless ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s*(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(-?\d+\.\d+)\]/){
       carp "ERROR [$this_function]  cannot parse RNAalifold output:";
       croak $self->ifile.":\n$buffer[$i]";
     }
