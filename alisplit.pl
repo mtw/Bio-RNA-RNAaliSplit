@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-07 18:48:28 mtw>
+# Last changed Time-stamp: <2017-02-12 00:45:09 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -29,12 +29,12 @@ my $method = "dHn"; # SCI | dHn | dHx | dBp | dHB
 my $outdir = "as";
 my $verbose = undef;
 my @nseqs=();
-my ($dim,$alnfile);
+my ($dim,$alifile);
 my $scaleH = 1.;
 my $scaleB = 1.;
 
 Getopt::Long::config('no_ignore_case');
-pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
+pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alifile,
                                            "method|m=s" => \$method,
 					   "out|o=s"    => \$outdir,
 					   "scaleH"     => \$scaleH,
@@ -44,87 +44,23 @@ pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alnfile,
                                            "help|h"     => sub{pod2usage(1)}
                                            );
 
-unless (-f $alnfile){
+unless (-f $alifile){
   warn "Could not find input file provided via --aln|-a option";
   pod2usage(-verbose => 0);
 }
 
+my $round = 1;
+my $done = 0;
 
-my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
-				       format => $format,
-				       odirn => $outdir,
-				       dump => 1);
-#print Dumper($AlignSplitObject);
-#print Dumper(${$AlignSplitObject->next_aln}{_order});
-#die;
-$dim = $AlignSplitObject->next_aln->num_sequences;
-
-my $dmfile = make_distance_matrix($AlignSplitObject,$method);
-
-# compute Neighbor Joining tree and do split decomposition
-print STDERR "Perform Split Decomposition ...\n";
-my $sd = WrapAnalyseDists->new(ifile => $dmfile,
-			       odir => $AlignSplitObject->odir,
-			       basename => $AlignSplitObject->infilebasename);
-print STDERR "Identified ".$sd->count." splits\n";
-
-# run RNAalifold for the input alignment
-my $alifold = WrapRNAalifold->new(ifile => $alnfile,
-				  odir => $AlignSplitObject->odir);
-my $alifold_ribosum = WrapRNAalifold->new(ifile => $alnfile,
-					  odir => $AlignSplitObject->odir,
-					  ribosum => 1);
-# run RNAz for the input alignment
-my $rnaz = WrapRNAz->new(ifile => $alnfile,
-			 odir => $AlignSplitObject->odir);
-print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","alignment\n";
-print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alnfile."\n";
-print "-------------------------------------------------------------\n";
-
-# extract split sets and run RNAz on each of them
-my $splitnr=1;
-while (my $sets = $sd->pop()){
-  my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$hint) = (0)x5;
-  my ($ao1,$ao2,$ao1_ribosum,$ao2_ribosum) = (0)x4;
-  my ($sa1_c,$sa1_s,$sa2_c,$sa2_s); # subalignments in Clustal and Stockholm
-  my $set1 = $$sets{S1};
-  my $set2 = $$sets{S2};
-  my $token = "split".$splitnr;
-#  print "set1: @$set1\n";
-#  print "set2: @$set2\n";
-  ($sa1_c,$sa1_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set1", $set1);
-  ($sa2_c,$sa2_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set2", $set2);
-  if( scalar(@$set1) > 1){
-    $rnazo1 = WrapRNAz->new(ifile => $sa1_c,
-			    odir => $AlignSplitObject->odir);
-    $have_rnazo1 = 1;
-    ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-    if($rnazo1->P > 1.1*$rnaz->P){$hint = "**"};
-    if($rnazo1->P > 1.2*$rnaz->P){$hint = "***"};
-    if($rnazo1->P > 1.3*$rnaz->P){$hint = "****"};
-    $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
-			       odir => $AlignSplitObject->odir);
-    $ao1_ribosum = WrapRNAalifold->new(ifile => $sa1_c,
-				       odir => $AlignSplitObject->odir,
-				       ribosum => 1);
-    print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$sa1_c."\n";
-  }
-  if( scalar(@$set2) > 1){
-    $rnazo2 = WrapRNAz->new(ifile => $sa2_c,
-			    odir => $AlignSplitObject->odir);
-    $have_rnazo2 = 1;
-    ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-    if($rnazo2->P > 1.1*$rnaz->P){$hint = "**"};
-    if($rnazo2->P > 1.2*$rnaz->P){$hint = "***"};
-    if($rnazo2->P > 1.3*$rnaz->P){$hint = "****"};
-    $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
-			       odir => $AlignSplitObject->odir);
-    $ao2_ribosum = WrapRNAalifold->new(ifile => $sa2_c,
-				       odir => $AlignSplitObject->odir,
-				       ribosum => 1);
-    print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$sa2_c."\n";
-  }
-  $splitnr++;
+while ($done != 1){
+  my $lround = sprintf("%03d", $round);
+  my $current_round_name = "round_".$lround;
+  my $odirname = dir($outdir,$current_round_name);
+  print STDERR "Computing round $lround ...\n";
+  alisplit($alifile,$odirname);
+  $round++;
+  $done = 1; 
+  #TODO sort output by RNAz SVM prob and re-run with the first few as input alignments 
 }
 
 
@@ -132,8 +68,89 @@ while (my $sets = $sd->pop()){
 # subroutines #
 ###############
 
+sub alisplit {
+  my ($alnfile,$odirn) = @_;
+
+  my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
+					 format => $format,
+					 odirn => $odirn,
+					 dump => 1);
+  #print Dumper($AlignSplitObject);
+  #print Dumper(${$AlignSplitObject->next_aln}{_order});
+  #die;
+  $dim = $AlignSplitObject->next_aln->num_sequences;
+
+  my $dmfile = make_distance_matrix($AlignSplitObject,$method,$odirn);
+
+  # compute Neighbor Joining tree and do split decomposition
+  print STDERR "Perform Split Decomposition ...\n";
+  my $sd = WrapAnalyseDists->new(ifile => $dmfile,
+				 odir => $AlignSplitObject->odir,
+				 basename => $AlignSplitObject->infilebasename);
+  print STDERR "Identified ".$sd->count." splits\n";
+
+  # run RNAalifold for the input alignment
+  my $alifold = WrapRNAalifold->new(ifile => $alnfile,
+				    odir => $AlignSplitObject->odir);
+  my $alifold_ribosum = WrapRNAalifold->new(ifile => $alnfile,
+					    odir => $AlignSplitObject->odir,
+					    ribosum => 1);
+  # run RNAz for the input alignment
+  my $rnaz = WrapRNAz->new(ifile => $alnfile,
+			   odir => $AlignSplitObject->odir);
+  print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","alignment\n";
+  print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alnfile."\n";
+  print "-------------------------------------------------------------\n";
+
+  # extract split sets and run RNAz on each of them
+  my $splitnr=1;
+  while (my $sets = $sd->pop()){
+    my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$hint) = (0)x5;
+    my ($ao1,$ao2,$ao1_ribosum,$ao2_ribosum) = (0)x4;
+    my ($sa1_c,$sa1_s,$sa2_c,$sa2_s); # subalignments in Clustal and Stockholm
+    my $set1 = $$sets{S1};
+    my $set2 = $$sets{S2};
+    my $token = "split".$splitnr;
+    #  print "set1: @$set1\n";
+    #  print "set2: @$set2\n";
+    ($sa1_c,$sa1_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set1", $set1);
+    ($sa2_c,$sa2_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set2", $set2);
+    if( scalar(@$set1) > 1){
+      $rnazo1 = WrapRNAz->new(ifile => $sa1_c,
+			      odir => $AlignSplitObject->odir);
+      $have_rnazo1 = 1;
+      ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
+      if($rnazo1->P > 1.1*$rnaz->P){$hint = "**"};
+      if($rnazo1->P > 1.2*$rnaz->P){$hint = "***"};
+      if($rnazo1->P > 1.3*$rnaz->P){$hint = "****"};
+      $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
+				 odir => $AlignSplitObject->odir);
+      $ao1_ribosum = WrapRNAalifold->new(ifile => $sa1_c,
+					 odir => $AlignSplitObject->odir,
+					 ribosum => 1);
+      print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$sa1_c."\n";
+    }
+    if( scalar(@$set2) > 1){
+      $rnazo2 = WrapRNAz->new(ifile => $sa2_c,
+			      odir => $AlignSplitObject->odir);
+      $have_rnazo2 = 1;
+      ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
+      if($rnazo2->P > 1.1*$rnaz->P){$hint = "**"};
+      if($rnazo2->P > 1.2*$rnaz->P){$hint = "***"};
+      if($rnazo2->P > 1.3*$rnaz->P){$hint = "****"};
+      $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
+				 odir => $AlignSplitObject->odir);
+      $ao2_ribosum = WrapRNAalifold->new(ifile => $sa2_c,
+					 odir => $AlignSplitObject->odir,
+					 ribosum => 1);
+      print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$sa2_c."\n";
+    }
+    $splitnr++;
+  }
+}
+
 sub make_distance_matrix {
-  my ($ASO,$m) = @_;
+  my ($ASO,$m,$od) = @_;
   my ($i,$j,$Dfile);
   my @pw_alns = ();
   my @D = ();
@@ -162,7 +179,7 @@ sub make_distance_matrix {
   foreach my $ali (@pw_alns){
     my $pw_aso = AlignSplit->new(ifile => $ali,
 				 format => "ClustalW",
-				 odirn => $outdir);
+				 odirn => $od);
     my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
     my $dHn = $pw_aso->hammingdistN;

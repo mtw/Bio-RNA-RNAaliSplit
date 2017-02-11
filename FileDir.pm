@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-26 17:29:31 mtw>
+# Last changed Time-stamp: <2017-02-12 00:27:52 mtw>
 
 # FileDir.pm: Moose Role for basic file IO
 
@@ -39,7 +39,7 @@ has 'odir' => (
 
 has 'odirn' => ( # custom output dir name
 		is => 'rw',
-		default => 'results',
+		isa => 'Path::Class::Dir',
 		predicate => 'has_odirn',
 	       );
 

@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-07 13:24:12 mtw>
+# Last changed Time-stamp: <2017-02-11 20:47:54 mtw>
 
 # WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
@@ -148,11 +148,14 @@ sub _parse_nj {
     my $set1_key = md5_base64(join "_", @set1);
     my $set2_key = md5_base64(join "_", @set2);
     if (!exists($sets{$set1_key}) && !exists($sets{$set2_key})){
+      my $type;
       $sets{$set1_key} = \@set1; # lookup table for previously seen sets
       $sets{$set2_key} = \@set2;
       next if (scalar(@set1) == "0"); # skip empty sets (ie input alignment)
       next if (scalar(@set2) == "0");
-      $self->add( {S1=>\@set1,S2=>\@set2,ori=>"NJ"} );
+      if(scalar(@set1)==1||scalar(@set2)==1){$type="NJT"} # trivial
+      else{$type="NJN"} # non-trivial
+      $self->add( {S1=>\@set1,S2=>\@set2,ori=>"NJ",type=>$type} );
     }
     else{
       #print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";
@@ -213,9 +216,12 @@ sub _parse_sd {
     my $set1_key = md5_base64(join "_", @set1);
     my $set2_key = md5_base64(join "_", @set2);
     if (!exists($sets{$set1_key}) && !exists($sets{$set2_key})){
+      my $type;
       $sets{$set1_key} = \@set1; # lookup table for previously seen sets
       $sets{$set2_key} = \@set2;
-      $self->add( {S1=>\@set1,S2=>\@set2,ori=>"SD"} );
+      if (scalar(@set1)==1 || scalar(@set2)==1){$type="SDT"} # trivial calse
+      else {$type="SDN"}
+      $self->add( {S1=>\@set1,S2=>\@set2,ori=>"SD",type=>$type} );
     }
     else{
     #  print STDERR "INFO [$this_function] previously identified sets \n@set1\n@set2\n";

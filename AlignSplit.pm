@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-05 23:23:26 mtw>
+# Last changed Time-stamp: <2017-02-12 00:27:46 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
 #
@@ -19,6 +19,7 @@ use File::Basename;
 use IPC::Cmd qw(can_run run);
 use Bio::AlignIO;
 use Storable 'dclone';
+use File::Path qw(make_path);
 
 subtype 'MyAln' => as class_type('Bio::AlignIO');
 
@@ -89,7 +90,7 @@ sub BUILD {
 		      -displayname_flat => 1} ); # discard position in sequence IDs
     $self->next_aln($self->alignment->next_aln);
     $self->odir( [$self->ifile->dir,$self->odirn] );
-    mkdir($self->odir);
+    make_path($self->odir);
     $self->infilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
 
     if ($self->has_dump_flag){
