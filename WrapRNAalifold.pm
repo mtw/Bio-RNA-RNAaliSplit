@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-07 14:00:54 mtw>
+# Last changed Time-stamp: <2017-02-15 20:33:08 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
@@ -100,7 +100,8 @@ sub BUILD {
 sub run_rnaalifold {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$alirnaps,$alidotps_fn,$alidotps);
+  my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$stk_fn);
+  my ($alirnaps,$alidotps_fn,$alidotps,$alifoldstk);
   my $tag = "";
   if ($self->has_ribosum){$tag = ".risobum"}
   if ($self->has_alnfilebasename){
@@ -108,12 +109,14 @@ sub run_rnaalifold {
     $alnps_fn = $self->alnfilebasename.$tag."."."aln.ps";
     $alirnaps_fn = $self->alnfilebasename.$tag."."."alirna.ps";
     $alidotps_fn = $self->alnfilebasename.$tag."."."alidot.ps";
+    $stk_fn = $self->alnfilebasename.$tag."."."alifold.stk";
   }
   elsif ($self->has_basename){
     $out_fn = $self->bn.$tag."."."alifold.out";
     $alnps_fn = $self->bn.$tag."."."aln.ps";
     $alirnaps_fn = $self->bn.$tag."."."alirna.ps";
     $alidotps_fn = $self->bn.$tag."."."alidot.ps";
+    $stk_fn = $self->bn.$tag."."."alifold.stk";
   }
   else{
     $out_fn = $tag."alifold.out";
@@ -125,9 +128,10 @@ sub run_rnaalifold {
   $alnps = file($oodir,$alnps_fn); # RNAalifold aln.ps
   $alirnaps = file($oodir,$alirnaps_fn); # RNAalifold alirna.ps
   $alidotps = file($oodir,$alidotps_fn); # RNAalifold alidot.ps
+  $alifoldstk = file($oodir,$stk_fn); # RNAalifold generated Stockholm file with new CS 
 
   open my $fh, ">", $out;
-  my $alifold_options = " --aln --color --cfactor 0.6 --nfactor 0.5 -p --sci ";
+  my $alifold_options = " --aln --color --cfactor 0.6 --nfactor 0.5 -p --sci --aln-stk ";
   if ($self->has_ribosum){$alifold_options.=" -r "}
   my $cmd = $rnaalifold.$alifold_options.$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
@@ -150,6 +154,7 @@ sub run_rnaalifold {
   rename "aln.ps", $alnps;
   rename "alirna.ps", $alirnaps;
   rename "alidot.ps", $alidotps;
+  rename "RNAalifold_results.stk", $alifoldstk;
   unlink "alifold.out";
 }
 
