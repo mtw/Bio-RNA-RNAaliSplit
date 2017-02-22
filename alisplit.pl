@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-12 00:45:09 mtw>
+# Last changed Time-stamp: <2017-02-14 16:09:04 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -98,16 +98,16 @@ sub alisplit {
   # run RNAz for the input alignment
   my $rnaz = WrapRNAz->new(ifile => $alnfile,
 			   odir => $AlignSplitObject->odir);
-  print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","alignment\n";
-  print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alnfile."\n";
-  print "-------------------------------------------------------------\n";
+  print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","consensus structure","alignment\n";
+  print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alifold_ribosum->consensus_struc,$alnfile."\n";
+  print "---------------------------------------------------------------------------------------------------\n";
 
   # extract split sets and run RNAz on each of them
   my $splitnr=1;
   while (my $sets = $sd->pop()){
     my ($rnazo1,$rnazo2,$have_rnazo1,$have_rnazo2,$hint) = (0)x5;
     my ($ao1,$ao2,$ao1_ribosum,$ao2_ribosum) = (0)x4;
-    my ($sa1_c,$sa1_s,$sa2_c,$sa2_s); # subalignments in Clustal and Stockholm
+    my ($cs,$sa1_c,$sa1_s,$sa2_c,$sa2_s); # subalignments in Clustal and Stockholm
     my $set1 = $$sets{S1};
     my $set2 = $$sets{S2};
     my $token = "split".$splitnr;
@@ -128,7 +128,8 @@ sub alisplit {
       $ao1_ribosum = WrapRNAalifold->new(ifile => $sa1_c,
 					 odir => $AlignSplitObject->odir,
 					 ribosum => 1);
-      print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$sa1_c."\n";
+      $cs = $ao1_ribosum->consensus_struc;
+      print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$cs,$sa1_c."\n";
     }
     if( scalar(@$set2) > 1){
       $rnazo2 = WrapRNAz->new(ifile => $sa2_c,
@@ -143,7 +144,8 @@ sub alisplit {
       $ao2_ribosum = WrapRNAalifold->new(ifile => $sa2_c,
 					 odir => $AlignSplitObject->odir,
 					 ribosum => 1);
-      print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$sa2_c."\n";
+      $cs = $ao2_ribosum->consensus_struc;
+      print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$cs,$sa2_c."\n";
     }
     $splitnr++;
   }
