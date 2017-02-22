@@ -1,14 +1,14 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-15 20:33:08 mtw>
+# Last changed Time-stamp: <2017-02-22 20:31:00 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
 # Requires RNAalifold executable from the ViennaRNA package available
 # to the Perl interpreter.
 
-package WrapRNAalifold;
+package Bio::RNA::RNAaliSplit::WrapRNAalifold;
 
-use version; our $VERSION = qv('0.01');
+use version; our $VERSION = qv('0.03');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -76,7 +76,7 @@ has 'consensus_covar_terms' => (
 				predicate => 'has_consensus_covar_terms',
 				init_arg => undef,
 			       );
-with 'FileDir';
+with 'Bio::RNA::RNAaliSplit::FileDir';
 
 sub BUILD {
   my $self = shift;

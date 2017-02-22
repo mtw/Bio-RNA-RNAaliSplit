@@ -1,14 +1,14 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-11 20:47:54 mtw>
+# Last changed Time-stamp: <2017-02-22 20:30:18 mtw>
 
 # WrapAnalyseDists.pm: Wrapper for computing split decomposition
 #
 # requires AnalyseDists executable from the ViennaRNA poackage
 # available to the Perl interpreter
 
-package WrapAnalyseDists;
+package Bio::RNA::RNAaliSplit::WrapAnalyseDists;
 
-use version; our $VERSION = qv('0.01');
+use version; our $VERSION = qv('0.03');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -55,7 +55,7 @@ has 'dim' => (
 	      predicate => 'has_dim',
 	     );
 
-with 'FileDir';
+with 'Bio::RNA::RNAaliSplit::FileDir';
 
 sub BUILD {
   my $self = shift;

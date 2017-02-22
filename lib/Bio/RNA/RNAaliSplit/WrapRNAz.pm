@@ -1,14 +1,14 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-01-26 17:53:34 mtw>
+# Last changed Time-stamp: <2017-02-22 20:32:48 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAz
 #
 # Requires RNAz executable available to the Perl interpreter.
 # This package contains code fragments from the original RNAz Perl module
 
-package WrapRNAz;
+package Bio::RNA::RNAaliSplit::WrapRNAz;
 
-use version; our $VERSION = qv('0.01');
+use version; our $VERSION = qv('0.03');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -56,7 +56,7 @@ has 'sci' => (
 	      documentation => q(Structure conservation index),
 	     );
 
-with 'FileDir';
+with 'Bio::RNA::RNAaliSplit::FileDir';
 
 sub BUILD {
   my $self = shift;

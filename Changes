@@ -1,0 +1,5 @@
+Revision history for Bio::RNA::RNAaliSplit
+
+0.03    Wed Feb 22 2017
+        - packaged for distribution as Perl module
+

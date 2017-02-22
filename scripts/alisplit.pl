@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-14 16:09:04 mtw>
+# Last changed Time-stamp: <2017-02-22 21:02:51 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -9,10 +9,10 @@
 
 use strict;
 use warnings;
-use AlignSplit;
-use WrapRNAz;
-use WrapRNAalifold;
-use WrapAnalyseDists;
+use Bio::RNA::RNAaliSplit;
+use Bio::RNA::RNAaliSplit::WrapRNAz;
+use Bio::RNA::RNAaliSplit::WrapRNAalifold;
+use Bio::RNA::RNAaliSplit::WrapAnalyseDists;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
@@ -71,10 +71,10 @@ while ($done != 1){
 sub alisplit {
   my ($alnfile,$odirn) = @_;
 
-  my $AlignSplitObject = AlignSplit->new(ifile => $alnfile,
-					 format => $format,
-					 odirn => $odirn,
-					 dump => 1);
+  my $AlignSplitObject = Bio::RNA::RNAaliSplit->new(ifile => $alnfile,
+						    format => $format,
+						    odirn => $odirn,
+						    dump => 1);
   #print Dumper($AlignSplitObject);
   #print Dumper(${$AlignSplitObject->next_aln}{_order});
   #die;
@@ -84,20 +84,20 @@ sub alisplit {
 
   # compute Neighbor Joining tree and do split decomposition
   print STDERR "Perform Split Decomposition ...\n";
-  my $sd = WrapAnalyseDists->new(ifile => $dmfile,
-				 odir => $AlignSplitObject->odir,
-				 basename => $AlignSplitObject->infilebasename);
+  my $sd = Bio::RNA::RNAaliSplit::WrapAnalyseDists->new(ifile => $dmfile,
+							odir => $AlignSplitObject->odir,
+							basename => $AlignSplitObject->infilebasename);
   print STDERR "Identified ".$sd->count." splits\n";
 
   # run RNAalifold for the input alignment
-  my $alifold = WrapRNAalifold->new(ifile => $alnfile,
-				    odir => $AlignSplitObject->odir);
-  my $alifold_ribosum = WrapRNAalifold->new(ifile => $alnfile,
-					    odir => $AlignSplitObject->odir,
-					    ribosum => 1);
+  my $alifold = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
+							   odir => $AlignSplitObject->odir);
+  my $alifold_ribosum = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
+								   odir => $AlignSplitObject->odir,
+								   ribosum => 1);
   # run RNAz for the input alignment
-  my $rnaz = WrapRNAz->new(ifile => $alnfile,
-			   odir => $AlignSplitObject->odir);
+  my $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $alnfile,
+						  odir => $AlignSplitObject->odir);
   print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","consensus structure","alignment\n";
   print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alifold_ribosum->consensus_struc,$alnfile."\n";
   print "---------------------------------------------------------------------------------------------------\n";
@@ -116,34 +116,34 @@ sub alisplit {
     ($sa1_c,$sa1_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set1", $set1);
     ($sa2_c,$sa2_s) = $AlignSplitObject->dump_subalignment("splits", $token.".set2", $set2);
     if( scalar(@$set1) > 1){
-      $rnazo1 = WrapRNAz->new(ifile => $sa1_c,
-			      odir => $AlignSplitObject->odir);
+      $rnazo1 = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $sa1_c,
+						     odir => $AlignSplitObject->odir);
       $have_rnazo1 = 1;
       ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
       if($rnazo1->P > 1.1*$rnaz->P){$hint = "**"};
       if($rnazo1->P > 1.2*$rnaz->P){$hint = "***"};
       if($rnazo1->P > 1.3*$rnaz->P){$hint = "****"};
-      $ao1 = WrapRNAalifold->new(ifile => $sa1_c,
-				 odir => $AlignSplitObject->odir);
-      $ao1_ribosum = WrapRNAalifold->new(ifile => $sa1_c,
-					 odir => $AlignSplitObject->odir,
-					 ribosum => 1);
+      $ao1 = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa1_c,
+							odir => $AlignSplitObject->odir);
+      $ao1_ribosum = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa1_c,
+								odir => $AlignSplitObject->odir,
+								ribosum => 1);
       $cs = $ao1_ribosum->consensus_struc;
       print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$cs,$sa1_c."\n";
     }
     if( scalar(@$set2) > 1){
-      $rnazo2 = WrapRNAz->new(ifile => $sa2_c,
-			      odir => $AlignSplitObject->odir);
+      $rnazo2 = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $sa2_c,
+						     odir => $AlignSplitObject->odir);
       $have_rnazo2 = 1;
       ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
       if($rnazo2->P > 1.1*$rnaz->P){$hint = "**"};
       if($rnazo2->P > 1.2*$rnaz->P){$hint = "***"};
       if($rnazo2->P > 1.3*$rnaz->P){$hint = "****"};
-      $ao2 = WrapRNAalifold->new(ifile => $sa2_c,
-				 odir => $AlignSplitObject->odir);
-      $ao2_ribosum = WrapRNAalifold->new(ifile => $sa2_c,
-					 odir => $AlignSplitObject->odir,
-					 ribosum => 1);
+      $ao2 = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa2_c,
+							odir => $AlignSplitObject->odir);
+      $ao2_ribosum = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa2_c,
+								odir => $AlignSplitObject->odir,
+								ribosum => 1);
       $cs = $ao2_ribosum->consensus_struc;
       print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$cs,$sa2_c."\n";
     }
@@ -179,9 +179,9 @@ sub make_distance_matrix {
   # build distance matrix based on pairwise alignments
   print STDERR "Constructing distance matrix based on pairwise alignments ...\n";
   foreach my $ali (@pw_alns){
-    my $pw_aso = AlignSplit->new(ifile => $ali,
-				 format => "ClustalW",
-				 odirn => $od);
+    my $pw_aso = Bio::RNA::RNAaliSplit->new(ifile => $ali,
+					    format => "ClustalW",
+					    odirn => $od);
     my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
     my $dHn = $pw_aso->hammingdistN;
@@ -215,6 +215,7 @@ sub make_distance_matrix {
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dBp;
     }
     elsif($m eq "dHB") { # combined hamming + basepair distance
+      carp "pairwise distance based basepairs is currently broken, use dHn instead";
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHB;
     }
     else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp|dHB"}

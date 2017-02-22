@@ -1,13 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-12 00:27:46 mtw>
+# Last changed Time-stamp: <2017-02-22 21:01:18 mtw>
 
 # AlignSplit.pm: Handler for horizontally splitting alignments
-#
-# requires RNAalifold executable available to the perl interpreter
 
-package AlignSplit;
+package Bio::RNA::RNAaliSplit;
 
-use version; our $VERSION = qv('0.02');
+use version; our $VERSION = qv('0.03');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -78,7 +76,7 @@ has 'hammingdistX' => (
 		       init_arg => undef,
 		      );
 
-with 'FileDir';
+with 'Bio::RNA::RNAaliSplit::FileDir';
 
 sub BUILD {
     my $self = shift;
