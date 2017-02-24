@@ -22,7 +22,7 @@ WriteMakefile(
 				    },
 	      BUILD_REQUIRES     => {
 				     'Test::More' => 0,
-				     'RNA' => 0,
+				    
 				    },
 	      PREREQ_PM          => {
 				     "Array::Set"=> '0',
@@ -43,9 +43,8 @@ WriteMakefile(
 				     "Path::Class" => '0',
 				     "Path::Class::Dir" => '0',
 				     "Path::Class::File" => '0',
+				     "RNA" => "2.3.3",
 				     "Storable" => '0',
-			
-
 				    },
 	      'EXE_FILES'        => [ map { "scripts/$_" } @scripts ],
 	      dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
