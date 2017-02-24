@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-22 21:02:51 mtw>
+# Last changed Time-stamp: <2017-02-24 18:54:58 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -32,6 +32,7 @@ my @nseqs=();
 my ($dim,$alifile);
 my $scaleH = 1.;
 my $scaleB = 1.;
+my %foldme = (); # HoH of folded input sequences for dBp computation
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alifile,
@@ -51,6 +52,10 @@ unless (-f $alifile){
 
 my $round = 1;
 my $done = 0;
+
+if($method eq "dBp" || $method eq "dHB"){
+  fold_input_alignment(); # for later computation of base pair distances
+}
 
 while ($done != 1){
   my $lround = sprintf("%03d", $round);
@@ -190,8 +195,10 @@ sub make_distance_matrix {
     my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
     my $seq1 = $so1->seq;
     my $seq2 = $so2->seq;
+   
     my ($ss1,$mfe1) = RNA::fold($seq1);
     my ($ss2,$mfe2) = RNA::fold($seq2);
+    #print ">> \$seq1: $seq1\n          $ss1\n>> \$seq2: $seq2\n          $ss2\n\n";
     my $dBp = RNA::bp_distance($ss1,$ss2);
     my $dHB = $scaleH*$dHn + $scaleB*$dBp;
 
