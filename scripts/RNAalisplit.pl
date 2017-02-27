@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-24 18:54:58 mtw>
+# Last changed Time-stamp: <2017-02-27 10:38:52 mtw>
 # -*-CPerl-*-
 #
 # usage: alisplit.pl -a myfile.aln
@@ -29,7 +29,7 @@ my $method = "dHn"; # SCI | dHn | dHx | dBp | dHB
 my $outdir = "as";
 my $verbose = undef;
 my @nseqs=();
-my ($dim,$alifile);
+my ($dim,$alifile,$fi);
 my $scaleH = 1.;
 my $scaleB = 1.;
 my %foldme = (); # HoH of folded input sequences for dBp computation
@@ -50,13 +50,12 @@ unless (-f $alifile){
   pod2usage(-verbose => 0);
 }
 
-my $round = 1;
-my $done = 0;
-
 if($method eq "dBp" || $method eq "dHB"){
-  fold_input_alignment(); # for later computation of base pair distances
+  $fi = fold_input_alignment($alifile); # for later computation of BP dist
 }
 
+my $round = 1;
+my $done = 0;
 while ($done != 1){
   my $lround = sprintf("%03d", $round);
   my $current_round_name = "round_".$lround;
@@ -103,9 +102,8 @@ sub alisplit {
   # run RNAz for the input alignment
   my $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $alnfile,
 						  odir => $AlignSplitObject->odir);
-  print join "\t", "#RNAz SVM prob","hit","z-score","SCI RNAz","SCI aifold","sequences","consensus structure","alignment\n";
-  print join "\t", $rnaz->P,"0",$rnaz->z,$rnaz->sci,$alifold->sci,$dim,$alifold_ribosum->consensus_struc,$alnfile."\n";
-  print "---------------------------------------------------------------------------------------------------\n";
+  print join "\t", "#hit","RNAz prob","z-score","SCI","seqs","consensus structure","alignment\n";
+  print join "\t", "-",$rnaz->P,$rnaz->z,$alifold->sci,$dim,$alifold_ribosum->consensus_struc,$alnfile."\n";
 
   # extract split sets and run RNAz on each of them
   my $splitnr=1;
@@ -124,33 +122,31 @@ sub alisplit {
       $rnazo1 = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $sa1_c,
 						     odir => $AlignSplitObject->odir);
       $have_rnazo1 = 1;
-      ($rnazo1->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-      if($rnazo1->P > 1.1*$rnaz->P){$hint = "**"};
-      if($rnazo1->P > 1.2*$rnaz->P){$hint = "***"};
-      if($rnazo1->P > 1.3*$rnaz->P){$hint = "****"};
+      ($rnazo1->P > $rnaz->P) ? ($hint = "?") : ($hint = "-");
+      if($rnazo1->P > 1.2*$rnaz->P){$hint = "x"};
+      if($rnazo1->P > 1.3*$rnaz->P){$hint = "X"};
       $ao1 = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa1_c,
 							odir => $AlignSplitObject->odir);
       $ao1_ribosum = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa1_c,
 								odir => $AlignSplitObject->odir,
 								ribosum => 1);
       $cs = $ao1_ribosum->consensus_struc;
-      print join "\t",$rnazo1->P,$hint,$rnazo1->z,$rnazo1->sci,$ao1->sci,scalar(@$set1),$cs,$sa1_c."\n";
+      print join "\t",$hint,$rnazo1->P,$rnazo1->z,$ao1->sci,scalar(@$set1),$cs,$sa1_c."\n";
     }
     if( scalar(@$set2) > 1){
       $rnazo2 = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $sa2_c,
 						     odir => $AlignSplitObject->odir);
       $have_rnazo2 = 1;
-      ($rnazo2->P > $rnaz->P) ? ($hint = "*") : ($hint = " ");
-      if($rnazo2->P > 1.1*$rnaz->P){$hint = "**"};
-      if($rnazo2->P > 1.2*$rnaz->P){$hint = "***"};
-      if($rnazo2->P > 1.3*$rnaz->P){$hint = "****"};
+      ($rnazo2->P > $rnaz->P) ? ($hint = "?") : ($hint = "-");
+      if($rnazo2->P > 1.2*$rnaz->P){$hint = "x"};
+      if($rnazo2->P > 1.3*$rnaz->P){$hint = "X"};
       $ao2 = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa2_c,
 							odir => $AlignSplitObject->odir);
       $ao2_ribosum = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $sa2_c,
 								odir => $AlignSplitObject->odir,
 								ribosum => 1);
       $cs = $ao2_ribosum->consensus_struc;
-      print join "\t",$rnazo2->P,$hint,$rnazo2->z,$rnazo2->sci,$ao2->sci,scalar(@$set2),$cs,$sa2_c."\n";
+      print join "\t",$hint,$rnazo2->P,$rnazo2->z,$ao2->sci,scalar(@$set2),$cs,$sa2_c."\n";
     }
     $splitnr++;
   }
@@ -158,7 +154,8 @@ sub alisplit {
 
 sub make_distance_matrix {
   my ($ASO,$m,$od) = @_;
-  my ($i,$j,$Dfile);
+  my $this_function = (caller(0))[3];
+  my ($i,$j,$Dfile,$dHn,$dHx,$dBp,$dHB);
   my @pw_alns = ();
   my @D = ();
   my $check = 1;
@@ -189,18 +186,16 @@ sub make_distance_matrix {
 					    odirn => $od);
     my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
 
-    my $dHn = $pw_aso->hammingdistN;
-    my $dHx = $pw_aso->hammingdistX;
-    my $so1 = $pw_aso->next_aln->get_seq_by_pos(1);
-    my $so2 = $pw_aso->next_aln->get_seq_by_pos(2);
-    my $seq1 = $so1->seq;
-    my $seq2 = $so2->seq;
-   
-    my ($ss1,$mfe1) = RNA::fold($seq1);
-    my ($ss2,$mfe2) = RNA::fold($seq2);
+    $dHn = $pw_aso->hammingdistN;
+    $dHx = $pw_aso->hammingdistX;
+    my $id1 = $pw_aso->next_aln->get_seq_by_pos(1)->display_id;
+    my $id2 = $pw_aso->next_aln->get_seq_by_pos(2)->display_id;
+   # my $seq1 = $so1->seq;
+   # my $seq2 = $so2->seq;
+   # my ($ss1,$mfe1) = RNA::fold($seq1);
+   # my ($ss2,$mfe2) = RNA::fold($seq2);
     #print ">> \$seq1: $seq1\n          $ss1\n>> \$seq2: $seq2\n          $ss2\n\n";
-    my $dBp = RNA::bp_distance($ss1,$ss2);
-    my $dHB = $scaleH*$dHn + $scaleB*$dBp;
+ #   print Dumper($so1);
 
     if ($m eq "SCI"){
       # distance = -log( [normalized] pairwise SCI)
@@ -219,10 +214,21 @@ sub make_distance_matrix {
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHx;
     }
     elsif ($m eq "dBp") { # base pairdistance
+      carp "ERROR [$this_function] sequence \'display_id\' not found in input alignment"
+	unless (exists $$fi{$id1} && exists $$fi{$id2});
+      my $gss1 = $$fi{$id1}->{gss};
+      my $gss2 = $$fi{$id2}->{gss};
+      my $dBp = RNA::bp_distance($gss1,$gss2);
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dBp;
+
     }
     elsif($m eq "dHB") { # combined hamming + basepair distance
-      carp "pairwise distance based basepairs is currently broken, use dHn instead";
+      carp "ERROR [$this_function] sequence \'display_id\' not found in input alignment"
+	unless (exists $$fi{$id1} && exists $$fi{$id2});
+      my $gss1 = $$fi{$id1}->{gss};
+      my $gss2 = $$fi{$id2}->{gss};
+      my $dBp = RNA::bp_distance($gss1,$gss2);
+      my $dHB = $scaleH*$dHn + $scaleB*$dBp;
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHB;
     }
     else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp|dHB"}
@@ -319,11 +325,53 @@ sub check_triangle {
   print STDERR "Checked $count triangles ...\n";
 }
 
+sub fold_input_alignment {
+  my $aln = shift;
+  my %foldin = ();
+
+  my $input_AlignIO = Bio::AlignIO->new(-file => $alifile,
+				      -format => 'ClustalW'
+				     );
+  my $input_aln = $input_AlignIO->next_aln;
+  foreach my $element ($input_aln->each_seq) {
+    my @gappos = ();
+    my $gseq = $element->seq;
+    for (my $i=0;$i<length($gseq);$i++){
+      push @gappos, $i if (substr($gseq,$i,1) eq "-"); # keep gap positions
+    }
+    my $seq = $gseq;
+    $seq =~ s/-//g; # get gap-free sequence
+    my ($ss,$mfe) = RNA::fold($seq);
+    my $gss = $ss;
+    for (my $i=0;$i<=$#gappos;$i++){
+      my $gaps_inserted = 0;
+      substr($gss,$gappos[$i]+$gaps_inserted,0) = ".";
+      $gaps_inserted++;
+    }
+   # print $element->display_id."\n$gseq\n$gss\n$seq\n$ss\n";
+   # print join ",", @gappos,"\n---\n";
+    unless (exists($foldin{$element->display_id})){
+      $foldin{$element->display_id} = {
+				       gseq => $gseq,
+				       seq => $seq,
+				       ss => $ss,
+				       gss =>$gss,
+				       mfe => $mfe,
+				      }
+    }
+    else{
+      croak "ERROR: duplicate sequence identifier in input: ".$element->display_id;
+    }
+  }
+  return \%foldin;
+}
+
+
 __END__
 
 =head1 NAME
 
-alisplit.pl - Split and decompose multiple sequence alignments
+RNAalisplit - Split and decompose multiple sequence alignments
 
 =head1 SYNOPSIS
 
