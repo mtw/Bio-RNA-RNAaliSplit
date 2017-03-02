@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-22 20:31:00 mtw>
+# Last changed Time-stamp: <2017-03-02 19:31:52 mtw>
 
 # WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
 #
@@ -76,7 +76,19 @@ has 'consensus_covar_terms' => (
 				predicate => 'has_consensus_covar_terms',
 				init_arg => undef,
 			       );
+
+has 'RNAalifold_version' => (
+			     is => 'rw',
+			     isa => 'String',
+			     init_arg => undef,
+			    );
+
 with 'Bio::RNA::RNAaliSplit::FileDir';
+
+sub BUILDARGS {
+  my $self = shift;
+  print Dumper($self);
+}
 
 sub BUILD {
   my $self = shift;
