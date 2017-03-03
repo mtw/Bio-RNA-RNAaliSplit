@@ -8,7 +8,7 @@ of the other set. Another appliation is cleaning MSA from sequence that do
 not fold into or prohibit folding into a common consensus structure.
 
 This distribution is shipped with an executable script, RNAalisplit.pl,
-which takes a MSA in ClustalW format and performs the deconvolution.  
+which takes a RNA MSA in ClustalW format and performs the deconvolution.
 
 THIRD PARTY DEPENDENCIES
 
