@@ -1,12 +1,13 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-02-27 10:38:52 mtw>
+# Last changed Time-stamp: <2017-03-03 19:10:11 mtw>
 # -*-CPerl-*-
 #
-# usage: alisplit.pl -a myfile.aln
+# usage: RNAalisplit.pl -a myfile.aln
 #
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
+use version; our $VERSION = qv('0.03');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
@@ -32,6 +33,7 @@ my @nseqs=();
 my ($dim,$alifile,$fi);
 my $scaleH = 1.;
 my $scaleB = 1.;
+my $show_version = 0;
 my %foldme = (); # HoH of folded input sequences for dBp computation
 
 Getopt::Long::config('no_ignore_case');
@@ -41,9 +43,15 @@ pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alifile,
 					   "scaleH"     => \$scaleH,
 					   "scaleB"     => \$scaleB,
 					   "verbose|v"  => sub{$verbose = 1},
+					   "version"    => sub{$show_version = 1},
                                            "man"        => sub{pod2usage(-verbose => 2)},
                                            "help|h"     => sub{pod2usage(1)}
                                            );
+
+if ($show_version == 1){
+  print "RNAalisplit $VERSION\n";
+  exit(0);
+}
 
 unless (-f $alifile){
   warn "Could not find input file provided via --aln|-a option";
@@ -371,11 +379,11 @@ __END__
 
 =head1 NAME
 
-RNAalisplit - Split and decompose multiple sequence alignments
+RNAalisplit - Split and decompose RNA multiple sequence alignments
 
 =head1 SYNOPSIS
 
-alisplit.pl [--aln|-a I<FILE>] [--method|-m I<OPTION>] [options]
+RNAalisplit.pl [--aln|-a I<FILE>] [--method|-m I<OPTION>] [options]
 
 =head1 DESCRIPTION
 
@@ -392,6 +400,11 @@ subsets/subalignments are then evaluated according to the same
 decision value and a decision is made whether a subalignment performs
 better than the original alignment.This can be used to discriminate
 sequences that to not 'fit' in the input alignment.
+
+Output is written to STDOUT and a directory containing all temporary
+RNAalifold / RNAz / R-scape output files is created. Inside this
+directory, the 'phylip.dst' file contains the distance matrix computed
+from pairwise distances. It can be visualized e.g. with SplitsTree.
 
 =head1 OPTIONS
 
@@ -419,11 +432,15 @@ branch lengths in Neighbor Joining trees. Use with caution. [default:
 Output base directory. Temporary data and results will be written to
 this directory
 
+=item B<--version>
+
+Show RNAalisplit version and exit
+
 =back
 
 =head1 AUTHOR
 
-Michael T. Wolfinger E<lt>michael@wolfinger.euE<gt>
+Michael T. Wolfinger E<lt>michael@wolfinger.euE<gt> and E<lt>michael.wolfinger@univie.ac.atE<gt>
 
 =cut
 (END)
