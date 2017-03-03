@@ -1,7 +1,7 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-22 21:01:18 mtw>
+# Last changed Time-stamp: <2017-03-03 18:35:46 mtw>
 
-# AlignSplit.pm: Handler for horizontally splitting alignments
+# Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
 package Bio::RNA::RNAaliSplit;
 
@@ -198,4 +198,90 @@ sub _hamming {
 
 no Moose;
 
-1;
+
+
+=head1 NAME
+
+Bio::RNA::RNAaliSplit - Split and deconvolute structural RNA multiple
+sequence alignments
+
+=head1 VERSION
+
+Version 0.03
+
+=cut
+
+=head1 SYNOPSIS
+
+This module is a L<Moose> handler for horizontal splitting of
+structural RNA multiple sequence alignments (MSA). It employs third
+party tools (RNAalifold, RNAz, R-scape) for classification of
+subalignments, each folding into a common consensus structure.
+
+=head1 AUTHOR
+
+Michael T. Wolfinger, C<< <michael at wolfinger.eu> >>
+
+=head1 BUGS
+
+Please report any bugs or feature requests to
+C<bug-bio-rna-rnaalisplit at rt.cpan.org>, or through the web
+interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Bio-RNA-RNAaliSplit>.
+I will be notified, and then you'll automatically be notified of
+progress on your bug as I make changes.
+
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Bio::RNA::RNAaliSplit
+
+
+You can also look for information at:
+
+=over 4
+
+=item * RT: CPAN's request tracker (report bugs here)
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Bio-RNA-RNAaliSplit>
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/Bio-RNA-RNAaliSplit>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/Bio-RNA-RNAaliSplit>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/Bio-RNA-RNAaliSplit/>
+
+=back
+
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2017 Michael T. Wolfinger <michael@wolfinger.eu> and <michael.wolfinger@univie.ac.at>
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU Affero General Public
+License as published by the Free Software Foundation; either
+version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public
+License along with this program.  If not, see
+L<http://www.gnu.org/licenses/>.
+
+=cut
+
+1; # End of Bio::RNA::RNAaliSplit
+
+
