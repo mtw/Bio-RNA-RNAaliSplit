@@ -14,7 +14,7 @@ WriteMakefile(
 	      AUTHOR             => q{Michael T. Wolfinger <michael@wolfinger.eu>},
 	      VERSION_FROM       => 'lib/Bio/RNA/RNAaliSplit.pm',
 	      ABSTRACT_FROM      => 'lib/Bio/RNA/RNAaliSplit.pm',
-	      LICENSE            => 'perl_5',
+	      LICENSE            => 'agpl_3',
 	      PL_FILES           => {},
 	      MIN_PERL_VERSION   => 5.010,
 	      CONFIGURE_REQUIRES => {
@@ -22,7 +22,6 @@ WriteMakefile(
 				    },
 	      BUILD_REQUIRES     => {
 				     'Test::More' => 0,
-				    
 				    },
 	      PREREQ_PM          => {
 				     "Array::Set"=> '0',
