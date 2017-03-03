@@ -4,7 +4,7 @@ Bio::RNA::RNAaliSplit is a distribution of Perl modules for splitting and
 deconvoluting structural RNA multiple sequence alignments (MSA). Its
 primary purpose is to partition a MSA into subsets of sequences that have a
 common consensus structure which is different from the consesus structure
-of the other set. Another appliation is cleaning MSA from sequence that do
+of the other set. Another application is cleaning MSA from sequence that do
 not fold into or prohibit folding into a common consensus structure.
 
 This distribution is shipped with an executable script, RNAalisplit.pl,
