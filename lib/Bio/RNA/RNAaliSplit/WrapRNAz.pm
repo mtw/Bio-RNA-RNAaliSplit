@@ -1,7 +1,8 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-22 20:32:48 mtw>
+# Last changed Time-stamp: <2017-03-03 18:45:10 mtw>
 
-# WrapRNAz.pm: A versatile object-oriented wrapper for RNAz
+# Bio::RNA::RNAaliSplit::WrapRNAz.pm: A versatile object-oriented
+# wrapper for RNAz
 #
 # Requires RNAz executable available to the Perl interpreter.
 # This package contains code fragments from the original RNAz Perl module

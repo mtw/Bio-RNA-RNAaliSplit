@@ -1,7 +1,7 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-02-22 20:29:50 mtw>
+# Last changed Time-stamp: <2017-03-03 18:44:22 mtw>
 
-# FileDir.pm: Moose Role for basic file IO
+# Bio::RNA::RNAaliSplit::FileDir.pm: A Moose Role for basic file IO
 
 package Bio::RNA::RNAaliSplit::FileDir;
 

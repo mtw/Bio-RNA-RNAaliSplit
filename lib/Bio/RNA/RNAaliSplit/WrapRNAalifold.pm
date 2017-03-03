@@ -1,7 +1,8 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-02 19:31:52 mtw>
+# Last changed Time-stamp: <2017-03-03 18:43:44 mtw>
 
-# WrapRNAz.pm: A versatile object-oriented wrapper for RNAalifold
+# Bio::RNA::RNAaliSplit::WrapRNAz.pm: A versatile object-oriented
+# wrapper for RNAalifold
 #
 # Requires RNAalifold executable from the ViennaRNA package available
 # to the Perl interpreter.
@@ -85,10 +86,10 @@ has 'RNAalifold_version' => (
 
 with 'Bio::RNA::RNAaliSplit::FileDir';
 
-sub BUILDARGS {
-  my $self = shift;
-  print Dumper($self);
-}
+#sub BUILDARGS {
+#  my $self = shift;
+#  print Dumper($self);
+#}
 
 sub BUILD {
   my $self = shift;
