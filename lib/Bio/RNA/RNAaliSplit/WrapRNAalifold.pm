@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-03 18:43:44 mtw>
+# Last changed Time-stamp: <2017-03-09 16:16:14 michl>
 
 # Bio::RNA::RNAaliSplit::WrapRNAz.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRNAalifold;
 
-use version; our $VERSION = qv('0.03');
+use version; our $VERSION = qv('0.04');
 use Carp;
 use Data::Dumper;
 use Moose;
