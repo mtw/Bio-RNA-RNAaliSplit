@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-09 16:17:54 michl>
+# Last changed Time-stamp: <2017-03-09 20:50:15 michl>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
@@ -88,7 +88,10 @@ sub BUILD {
 		      -displayname_flat => 1} ); # discard position in sequence IDs
     $self->next_aln($self->alignment->next_aln);
     $self->odir( [$self->ifile->dir,$self->odirn] );
-    make_path($self->odir);
+    my @created = make_path($self->odir, {error => \my $err});
+    if (@$err) {
+      confess "ERROR [$this_function] could not create output directory $self->odir";
+    }
     $self->infilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
 
     if ($self->has_dump_flag){
