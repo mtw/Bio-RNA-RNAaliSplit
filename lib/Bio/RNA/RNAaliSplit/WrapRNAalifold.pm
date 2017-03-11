@@ -1,8 +1,8 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-09 16:16:14 michl>
+# Last changed Time-stamp: <2017-03-11 15:26:14 michl>
 
-# Bio::RNA::RNAaliSplit::WrapRNAz.pm: A versatile object-oriented
-# wrapper for RNAalifold
+# Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile
+# object-oriented wrapper for RNAalifold
 #
 # Requires RNAalifold executable from the ViennaRNA package available
 # to the Perl interpreter.
