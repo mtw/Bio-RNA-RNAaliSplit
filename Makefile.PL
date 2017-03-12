@@ -46,7 +46,7 @@ WriteMakefile(
 				     "Path::Class::Dir" => '0',
 				     "Path::Class::File" => '0',
 				     "Pod::Usage" => '0',
-				     "RNA" => "2.3.5",
+				     "RNA" => "2.3.4",
 				     "Storable" => '0',
 				    },
 	      'EXE_FILES'        => [ map { "scripts/$_" } @scripts ],
