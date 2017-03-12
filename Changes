@@ -8,3 +8,4 @@ Revision history for Bio::RNA::RNAaliSplit
 	- fixed an error in MANIFEST; File::ShareDir::Install v0.11 is now
 	  shipped with the distribution
 	- strict depencency on ViennaRNA >=v2.3.4 
+	- use Test::Prereq for dependency testing
