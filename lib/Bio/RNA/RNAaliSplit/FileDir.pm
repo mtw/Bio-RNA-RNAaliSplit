@@ -1,11 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-09 16:16:55 michl>
+# Last changed Time-stamp: <2017-03-13 17:14:41 michl>
 
 # Bio::RNA::RNAaliSplit::FileDir.pm: A Moose Role for basic file IO
 
 package Bio::RNA::RNAaliSplit::FileDir;
 
-use version; our $VERSION = qv('0.04');
+use version; our $VERSION = qv('0.05_01');
 use Moose::Util::TypeConstraints;
 use Moose::Role;
 use Path::Class::File;
