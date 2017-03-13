@@ -9,3 +9,7 @@ Revision history for Bio::RNA::RNAaliSplit
 	  shipped with the distribution
 	- strict depencency on ViennaRNA >=v2.3.4 
 	- use Test::Prereq for dependency testing
+
+0.05_01	
+	- ship with Version::Control for checking versions of third party
+	  modules 
