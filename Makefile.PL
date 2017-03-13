@@ -24,6 +24,7 @@ WriteMakefile(
 				     'Test::More' => 0,
 				    },
 	      PREREQ_PM          => {
+				     "lib" => "0",
 				     "strict" => "0",
 				     "warnings" => "0",
 				     "version" => "0",
