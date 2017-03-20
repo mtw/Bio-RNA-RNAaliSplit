@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-11 17:20:44 michl>
+# Last changed Time-stamp: <2017-03-14 02:56:50 michl>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -37,11 +37,12 @@ has 'bn' => (
 	    );
 
 has 'statistic' => (
-		is => 'rw',
-		isa => 'String',
-		predicate => 'has_statistic',
-		documentation => q(Covariation statistic),
-	     );
+		    is => 'rw',
+		    isa => 'Str',
+		    predicate => 'has_statistic',
+		    default => 'RAFS',
+		    documentation => q(Covariation statistic),
+		   );
 
 with 'Bio::RNA::RNAaliSplit::FileDir';
 
@@ -53,7 +54,10 @@ sub BUILD {
   $rscape = can_run('R-scape') or
     croak "ERROR [$this_function] R-scape not found";
   unless($self->has_odir){
-    unless($self->has_odirn){self->odirname("as")}
+    print ">>>>odir not found<<<<<\n";
+    #   unless($self->has_odirn){$self->odirname("as")}
+    print "ifile is ".eval($self->ifile)."\n";
+    print "ifile->dir is ".eval($self->ifile->dir)."\n";
     $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
   }
@@ -71,7 +75,7 @@ sub run_rscape {
   my ($R2Rsto_fn,$R2Rsto,$R2Rstopdf_fn,$R2Rstopdf,$R2Rstosvg_fn,$R2Rstosvg);
   my $tag = "";
   if ($self->has_statistic){$tag = ".".$self->statistic};
-  print ">> self->statistic is ".$self->statistic;die;
+  print ">> self->statistic is ".$self->statistic."\n";
 
   if ($self->has_alnfilebasename){
     $bname = $self->alnfilebasename;
@@ -108,7 +112,7 @@ sub run_rscape {
 
 #  open my $fh, ">", $out;
   my $rscape_options = "";
-  if ($self->has_statistic){$rscape_options.=" --$self->statistic "}
+  if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "}
   my $cmd = $rscape.$rscape_options.$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $cmd, verbose => 0 );
@@ -127,11 +131,14 @@ sub run_rscape {
 #  close($fh);
 
 #  $self->_parse_rnaalifold($stdout_buffer);
-  rename "aln.ps", $alnps;
-  rename "alirna.ps", $alirnaps;
-  rename "alidot.ps", $alidotps;
-  rename "RNAalifold_results.stk", $alifoldstk;
-  unlink "alifold.out";
+
+  #--
+  print "rename ".$bname.".out -> $out\n";
+  rename $bname.".out", $out;
+#  rename "alirna.ps", $alirnaps;
+#  rename "alidot.ps", $alidotps;
+#  rename "RNAalifold_results.stk", $alifoldstk;
+#  unlink "alifold.out";
 }
 
 # parse RNAalifold output
