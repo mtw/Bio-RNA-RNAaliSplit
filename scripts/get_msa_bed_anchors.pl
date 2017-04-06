@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-04-05 23:37:21 mtw>
+# Last changed Time-stamp: <2017-04-06 11:28:29 mtw>
 # -*-CPerl-*-
 #
 # Create BED6 anchors for columns in a MSA
@@ -16,7 +16,6 @@ use warnings;
 use Bio::AlignIO;
 use Bio::SimpleAlign;
 use Bio::Location::Simple;
-use Bio::ViennaNGS::FeatureIntervalN;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
