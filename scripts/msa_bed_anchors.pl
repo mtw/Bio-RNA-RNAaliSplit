@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-04-06 22:14:43 mtw>
+# Last changed Time-stamp: <2017-04-07 10:08:23 mtw>
 # -*-CPerl-*-
 #
 # Create BED6 anchors for columns in a multiple sequence alignment
@@ -30,6 +30,7 @@ my $format = "ClustalW";
 my $show_version = 0;
 my ($id,$alifile,$columns,$anchor_name);
 my $anchor_nr = 1;
+my @regions=();
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"     => \$alifile,
@@ -49,14 +50,24 @@ unless (-f $alifile){
   pod2usage(-verbose => 0);
 }
 
-my @cols = split /,/, $columns;
+@regions = split /,/, $columns;
 
-croak "[ERROR] must provide a comman-separated list of --columns|-c option"
-  unless (scalar(@cols) >= 1);
-foreach (@cols){
-  croak "[ERROR] argument $_ of --columns|-c is not a number"
-    unless (/^\d+$/);
+croak "[ERROR] must provide a comman-separated list to --columns|-c option"
+  unless (scalar(@regions) >= 1);
+foreach (@regions){
+  print ">>$_<<\n";
+  unless (/^\d+$/){
+    unless (/^\d+\-\d+$/){
+      croak "[ERROR] argument $_ of --columns|-c is not a (int-int) region";
+    }
+    else{
+      next;
+    }
+    croak "[ERROR] argument $_ of --columns|-c is not a int number"
+  }
 }
+
+print Dumper(\@regions);die;
 
 my $input_AlignIO = Bio::AlignIO->new(-file => $alifile,
 				      -format => $format,
@@ -66,7 +77,7 @@ my $input_aln = $input_AlignIO->next_aln;
 
 open my $out, ">", "anchors.bed" or die $!;
 
-foreach my $c (@cols){
+foreach my $c (@regions){
   $anchor_name = join "-", ("a",$anchor_nr,$c);
   foreach my $seq ($input_aln->each_seq) {
     my $loc = $seq->location_from_column($c);
