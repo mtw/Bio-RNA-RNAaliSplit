@@ -22,6 +22,7 @@ WriteMakefile(
 				    },
 	      BUILD_REQUIRES     => {
 				     'Test::More' => 0,
+				     'Test::Prereq' => 0,
 				    },
 	      PREREQ_PM          => {
 				     "lib" => "0",
