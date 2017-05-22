@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-13 17:14:56 michl>
+# Last changed Time-stamp: <2017-05-15 12:24:53 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAz.pm: A versatile object-oriented
 # wrapper for RNAz
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRNAz;
 
-use version; our $VERSION = qv('0.05_01');
+use version; our $VERSION = qv('0.05_02');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -67,7 +67,7 @@ sub BUILD {
    $rnaz = can_run('RNAz') or
      croak "ERROR [$this_function] RNAz not found";
   unless($self->has_odir){
-    unless($self->has_odirn){self->odirname("as")}
+    unless($self->has_odirn){self->odirn("as")}
     $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
   }

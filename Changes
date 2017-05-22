@@ -10,6 +10,8 @@ Revision history for Bio::RNA::RNAaliSplit
 	- strict depencency on ViennaRNA >=v2.3.4 
 	- use Test::Prereq for dependency testing
 
-0.05_01	
+0.05_03
 	- ship with Version::Control for checking versions of third party
 	  modules 
+	- remove obsolete symbols
+	- use FileDirUtil consistently instead of custom FileDir

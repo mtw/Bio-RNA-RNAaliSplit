@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-13 17:14:41 michl>
+# Last changed Time-stamp: <2017-05-16 14:24:34 mtw>
 
 # Bio::RNA::RNAaliSplit::FileDir.pm: A Moose Role for basic file IO
 
@@ -11,15 +11,15 @@ use Moose::Role;
 use Path::Class::File;
 use Path::Class::Dir;
 
-subtype 'MyFile' => as class_type('Path::Class::File');
+subtype 'MyFileX' => as class_type('Path::Class::File');
 
-coerce 'MyFile'
+coerce 'MyFileX'
   => from 'Str'
   => via { Path::Class::File->new($_) };
 
-subtype 'MyDir' => as class_type('Path::Class::Dir');
+subtype 'MyDirX' => as class_type('Path::Class::Dir');
 
-coerce 'MyDir'
+coerce 'MyDirX'
   => from 'ArrayRef'
   => via { Path::Class::Dir->new( @{ $_ } ) };
 

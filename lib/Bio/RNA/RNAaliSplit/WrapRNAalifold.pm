@@ -1,7 +1,7 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-13 17:15:10 michl>
+# Last changed Time-stamp: <2017-05-15 12:24:42 mtw>
 
-# Bio::RNA::RNAaliSplit::WrapRNAz.pm: A versatile object-oriented
+# Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
 #
 # Requires RNAalifold executable from the ViennaRNA package available
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRNAalifold;
 
-use version; our $VERSION = qv('0.05_01');
+use version; our $VERSION = qv('0.05_02');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -86,11 +86,6 @@ has 'RNAalifold_version' => (
 
 with 'Bio::RNA::RNAaliSplit::FileDir';
 
-#sub BUILDARGS {
-#  my $self = shift;
-#  print Dumper($self);
-#}
-
 sub BUILD {
   my $self = shift;
   my $this_function = (caller(0))[3];
@@ -99,7 +94,7 @@ sub BUILD {
   $rnaalifold = can_run('RNAalifold') or
     croak "ERROR [$this_function] RNAalifold not found";
   unless($self->has_odir){
-    unless($self->has_odirn){self->odirname("as")}
+    unless($self->has_odirn){self->odirn("as")}
     $self->odir( [$self->ifile->dir,$self->odirn] );
     mkdir($self->odir);
   }

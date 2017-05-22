@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-03-13 17:15:59 michl>
+# Last changed Time-stamp: <2017-05-22 23:47:42 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -85,7 +85,7 @@ sub alisplit {
 
   my $AlignSplitObject = Bio::RNA::RNAaliSplit->new(ifile => $alnfile,
 						    format => $format,
-						    odirn => $odirn,
+						    dirnam => $odirn,
 						    dump => 1);
   #print Dumper($AlignSplitObject);
   #print Dumper(${$AlignSplitObject->next_aln}{_order});
@@ -191,8 +191,8 @@ sub make_distance_matrix {
   foreach my $ali (@pw_alns){
     my $pw_aso = Bio::RNA::RNAaliSplit->new(ifile => $ali,
 					    format => "ClustalW",
-					    odirn => $od);
-    my ($i,$j) = sort split /_/, $pw_aso->infilebasename;
+					    dirnam => $od);
+    my ($i,$j) = sort split /_/, $pw_aso->ifilebn;
 
     $dHn = $pw_aso->hammingdistN;
     $dHx = $pw_aso->hammingdistX;
