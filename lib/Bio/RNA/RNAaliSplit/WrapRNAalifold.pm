@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-05-15 12:24:42 mtw>
+# Last changed Time-stamp: <2017-05-24 13:05:06 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -14,10 +14,10 @@ use Carp;
 use Data::Dumper;
 use Moose;
 use Moose::Util::TypeConstraints;
-use Path::Class::File;
-use Path::Class::Dir;
-use Path::Class;
-use File::Basename;
+#use Path::Class::File;
+#use Path::Class::Dir;
+#use Path::Class;
+#use File::Basename;
 use IPC::Cmd qw(can_run run);
 
 my ($rnaalifold,$oodir);
