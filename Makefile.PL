@@ -50,7 +50,7 @@ WriteMakefile(
 				     "Pod::Usage" => '0',
 				     "RNA" => "2.3.4",
 				     "Storable" => '0',
-				     "FileDirUtil" => '0.02',
+				     "FileDirUtil" => '0',
 				    },
 	      'EXE_FILES'        => [ map { "scripts/$_" } @scripts ],
 	      dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
