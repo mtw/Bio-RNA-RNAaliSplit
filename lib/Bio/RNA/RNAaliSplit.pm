@@ -1,11 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-05-22 23:45:51 mtw>
+# Last changed Time-stamp: <2017-05-28 17:03:14 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
 package Bio::RNA::RNAaliSplit;
 
-use version; our $VERSION = qv('0.05_02');
+use version; our $VERSION = qv('0.05');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -17,6 +17,7 @@ use Bio::AlignIO;
 use Storable 'dclone';
 use File::Path qw(make_path);
 use FileDirUtil;
+#use diagnostics;
 
 subtype 'MyAln' => as class_type('Bio::AlignIO');
 
@@ -80,14 +81,13 @@ sub BUILD {
 		      -format => $self->format,
 		      -displayname_flat => 1} ); # discard position in sequence IDs
     $self->next_aln($self->alignment->next_aln);
-    unless($self->has_odir){ # THIS IS NEW
-      unless($self->has_dirname){$self->dirname("as")}
-      $self->odir( [$self->ifile->dir,$self->dirname] );
+    unless($self->has_odir){
+      unless($self->has_dirnam){$self->dirnam("as")}
+      $self->odir( [$self->ifile->dir,$self->dirnam] );
     }
     my @created = make_path($self->odir, {error => \my $err});
-    if (@$err) {
-      confess "ERROR [$this_function] could not create output directory $self->odir";
-    }
+    confess "ERROR [$this_function] could not create output directory $self->odir"
+      if (@$err);
     $self->set_ifilebn;
 
     if ($self->has_dump_flag){
@@ -188,7 +188,7 @@ sub _hamming {
   my $hammingN = ($seq1 ^ $seq2) =~ tr/\001-\255//;
   $self->hammingdistN($hammingN);
 
-#  print $self->infilebasename,":\n";
+#  print $self->ifilebn,":\n";
 #  print ">>s1: $seq1\n";
 #  print ">>s2: $seq2\n";
 #  print "** dhN = ".$self->hammingdistN."\n";
@@ -206,7 +206,7 @@ sequence alignments
 
 =head1 VERSION
 
-Version 0.05_01
+Version 0.05
 
 =cut
 

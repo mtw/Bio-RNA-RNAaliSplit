@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-04-07 10:08:23 mtw>
+# Last changed Time-stamp: <2017-05-28 17:00:23 mtw>
 # -*-CPerl-*-
 #
 # Create BED6 anchors for columns in a multiple sequence alignment
@@ -10,7 +10,7 @@
 # usage: msa_bed_anchors.pl -a myaln.aln -c 20,133,176
 #
 
-use version; our $VERSION = qv('0.05_01');
+use version; our $VERSION = qv('0.05');
 use strict;
 use warnings;
 use Bio::AlignIO;

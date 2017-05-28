@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-03-21 04:40:52 michl>
+# Last changed Time-stamp: <2017-05-28 17:00:38 mtw>
 # -*-CPerl-*-
 #
 # usage: split_stockholm.pl -a myln.stk
 #
 
-use version; our $VERSION = qv('0.05_01');
+use version; our $VERSION = qv('0.05');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit::WrapRNAalifold;
