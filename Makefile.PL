@@ -22,6 +22,7 @@ WriteMakefile(
 				    },
 	      BUILD_REQUIRES     => {
 				     'Test::More' => 0,
+				     'Test::Prereq' => 0,
 				    },
 	      PREREQ_PM          => {
 				     "lib" => "0",
@@ -49,6 +50,8 @@ WriteMakefile(
 				     "Pod::Usage" => '0',
 				     "RNA" => "2.3.4",
 				     "Storable" => '0',
+				     "FileDirUtil" => '0',
+				     "namespace::autoclean" => '0',
 				    },
 	      'EXE_FILES'        => [ map { "scripts/$_" } @scripts ],
 	      dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
