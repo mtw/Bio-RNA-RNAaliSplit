@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-03-14 02:56:50 michl>
+# Last changed Time-stamp: <2017-07-04 23:37:07 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -9,32 +9,23 @@
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
-use version; our $VERSION = qv('0.04');
+use version; our $VERSION = qv('0.05.2');
 use Carp;
 use Data::Dumper;
 use Moose;
-use Moose::Util::TypeConstraints;
-use Path::Class::File;
-use Path::Class::Dir;
 use Path::Class;
-use File::Basename;
 use IPC::Cmd qw(can_run run);
+use File::Path qw(make_path);
 
 my ($rscape,$oodir);
+my $exe = "R-scape";
 
-has 'alnfilebasename' => (
-			  is => 'rw',
-			  isa => 'Str',
-			  predicate => 'has_alnfilebasename',
-			  init_arg => undef, # make this unsettable via constructor
-			 );
-
-has 'bn' => (
-	     is => 'rw',
-	     isa => 'Str',
-	     predicate => 'has_basename',
-	     documentation => q(Set this to override output basename),
-	    );
+has 'basename' => (
+		   is => 'rw',
+		   isa => 'Str',
+		   predicate => 'has_basename',
+		   documentation => q(Set this to override output basename),
+		  );
 
 has 'statistic' => (
 		    is => 'rw',
@@ -44,56 +35,53 @@ has 'statistic' => (
 		    documentation => q(Covariation statistic),
 		   );
 
-with 'Bio::RNA::RNAaliSplit::FileDir';
+with 'FileDirUtil';
+with 'Bio::RNA::RNAaliSplit::Roles';
+
 
 sub BUILD {
   my $self = shift;
   my $this_function = (caller(0))[3];
   confess "ERROR [$this_function] \$self->ifile not available"
     unless ($self->has_ifile);
-  $rscape = can_run('R-scape') or
-    croak "ERROR [$this_function] R-scape not found";
+  $rscape = can_run($exe) or
+    croak "ERROR [$this_function] $exe not found";
   unless($self->has_odir){
-    print ">>>>odir not found<<<<<\n";
-    #   unless($self->has_odirn){$self->odirname("as")}
-    print "ifile is ".eval($self->ifile)."\n";
-    print "ifile->dir is ".eval($self->ifile->dir)."\n";
-    $self->odir( [$self->ifile->dir,$self->odirn] );
-    mkdir($self->odir);
+    unless($self->has_dirnam){self->dirnam("as")}
+    $self->odir( [$self->ifile->dir,$self->dirnam] );
   }
   $oodir = $self->odir->subdir("rscape");
-  mkdir($oodir);
-  $self->alnfilebasename(fileparse($self->ifile->basename, qr/\.[^.]*/));
-
+  my @created = make_path($oodir, {error => \my $err});
+  confess "ERROR [$this_function] could not create output directory $self->oodir"
+    if (@$err);
+  $self->set_ifilebn;
   $self->run_rscape();
 }
 
 sub run_rscape {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  my ($bname,$out_fn,$sout_fn,$out,$sout,$sum_fn,$sum);
+  my ($out_fn,$sout_fn,$out,$sout,$sum_fn,$sum);
   my ($R2Rsto_fn,$R2Rsto,$R2Rstopdf_fn,$R2Rstopdf,$R2Rstosvg_fn,$R2Rstosvg);
   my $tag = "";
   if ($self->has_statistic){$tag = ".".$self->statistic};
   print ">> self->statistic is ".$self->statistic."\n";
 
-  if ($self->has_alnfilebasename){
-    $bname = $self->alnfilebasename;
-    $out_fn = $bname.$tag."."."rscape.out";
-    $sout_fn = $bname.$tag."."."rscape.sorted.out";
-    $sum_fn = $bname.$tag."."."rscape.sum";
-    $R2Rsto_fn = $bname.$tag."."."R2R.sto";
-    $R2Rstopdf_fn = $bname.$tag."."."R2R.sto.pdf";
-    $R2Rstosvg_fn = $bname.$tag."."."R2R.sto.svg";
+  if ($self->has_basename){
+    $out_fn = $self->bn.$tag."."."rscape.out";
+    $sout_fn = $self->bn.$tag."."."rscape.sorted.out";
+    $sum_fn = $self->bn.$tag."."."rscape.sum";
+    $R2Rsto_fn = $self->bn.$tag."."."R2R.sto";
+    $R2Rstopdf_fn = $self->bn.$tag."."."R2R.sto.pdf";
+    $R2Rstosvg_fn = $self->bn.$tag."."."R2R.sto.svg";
   }
-  elsif ($self->has_basename){
-    $bname = $self->bn;
-    $out_fn = $bname.$tag."."."rscape.out";
-    $sout_fn = $bname.$tag."."."rscape.sorted.out";
-    $sum_fn = $bname.$tag."."."rscape.sum";
-    $R2Rsto_fn = $bname.$tag."."."R2R.sto";
-    $R2Rstopdf_fn = $bname.$tag."."."R2R.sto.pdf";
-    $R2Rstosvg_fn = $bname.$tag."."."R2R.sto.svg";
+  elsif ($self->has_ifilebn){
+    $out_fn = $self->ifilebn.$tag."."."rscape.out";
+    $sout_fn = $self->ifilebn.$tag."."."rscape.sorted.out";
+    $sum_fn = $self->ifilebn.$tag."."."rscape.sum";
+    $R2Rsto_fn = $self->ifilebn.$tag."."."R2R.sto";
+    $R2Rstopdf_fn = $self->ifilebn.$tag."."."R2R.sto.pdf";
+    $R2Rstosvg_fn = $self->ifilebn.$tag."."."R2R.sto.svg";
   }
   else{
     $out_fn = $tag."rscape.out";
@@ -110,7 +98,7 @@ sub run_rscape {
   $R2Rstopdf = file($oodir,$R2Rstopdf_fn); # R-scape R2R PDF
   $R2Rstosvg = file($oodir,$R2Rstosvg_fn); # R-scape R2R SVG
 
-#  open my $fh, ">", $out;
+  open my $fh, ">", $out;
   my $rscape_options = "";
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "}
   my $cmd = $rscape.$rscape_options.$self->ifile;
@@ -123,19 +111,19 @@ sub run_rscape {
     print join "", @$full_buf;
     croak $!;
   }
-#  my $stdout_buffer = join "", @$stdout_buf;
-#  my @rnaalifoldout = split /\n/, $stdout_buffer;
-#  foreach my $line( @rnaalifoldout){
-#    print $fh $line,"\n";
-#  }
-#  close($fh);
+  my $stdout_buffer = join "", @$stdout_buf;
+  my @rscapestdout = split /\n/, $stdout_buffer;
+  foreach my $line( @rscapestdout){
+    print $fh $line,"\n";
+  }
+  close($fh);
 
 #  $self->_parse_rnaalifold($stdout_buffer);
 
   #--
-  print "rename ".$bname.".out -> $out\n";
-  rename $bname.".out", $out;
-#  rename "alirna.ps", $alirnaps;
+  print "rename $out_fn -> $out\n";
+  rename $out_fn, $out;
+  rename $sout_fn, $sout;
 #  rename "alidot.ps", $alidotps;
 #  rename "RNAalifold_results.stk", $alifoldstk;
 #  unlink "alifold.out";
