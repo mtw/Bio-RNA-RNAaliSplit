@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-07-04 23:37:07 mtw>
+# Last changed Time-stamp: <2017-07-05 17:57:19 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -35,6 +35,110 @@ has 'statistic' => (
 		    documentation => q(Covariation statistic),
 		   );
 
+has 'nseq' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_nseq',
+		    documentation => q(Number of sequences),
+		    init_arg => undef,
+	      );
+
+has 'alen' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_alen',
+		    documentation => q(Alignment length),
+		    init_arg => undef,
+	      );
+
+has 'nbpairs' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_nbpairs',
+		    documentation => q(Number of base pairs),
+		    init_arg => undef,
+		 );
+
+has 'evalue' => (
+		    is => 'rw',
+		    isa => 'Num',
+		    predicate => 'has_evalue',
+		    documentation => q(E-value threshold),
+		    init_arg => undef,
+		);
+
+has 'FP' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_FP',
+		    documentation => q(Covarying non base pairs (FP)),
+		    init_arg => undef,
+	    );
+
+has 'TP' => (
+	     is => 'rw',
+	     isa => 'Int',
+	     predicate => 'has_TP',
+	     documentation => q(Covarying base pairs (TP)),
+	     init_arg => undef,
+	    );
+
+has 'T' => (
+	     is => 'rw',
+	     isa => 'Int',
+	     predicate => 'has_T',
+	     documentation => q(Number of base pairs (T)),
+	     init_arg => undef,
+	   );
+
+has 'F' => (
+	    is => 'rw',
+	    isa => 'Int',
+	    predicate => 'has_F',
+	    documentation => q(Total number of covarying base pairs (F)),
+	    init_arg => undef,
+	   );
+
+has 'Sen' => (
+	      is => 'rw',
+	      isa => 'Num',
+	      predicate => 'has_Sen',
+	      documentation => q(Sensitivity (TP/T)),
+	      init_arg => undef,
+	     );
+
+has 'PPV' => (
+	      is => 'rw',
+	      isa => 'Num',
+	      predicate => 'has_PPV',
+	      documentation => q(Positive predictive value (TP/F)),
+	      init_arg => undef,
+	     );
+
+has 'Fmeasure' => (
+		   is => 'rw',
+		   isa => 'Num',
+		   predicate => 'has_Fmeasure',
+		   documentation => q(F-measure (2*Sen*PPV(Sen+PPV))),
+		   init_arg => undef,
+	     );
+
+
+has 'sigBP' => ( # significantly covarying base pairs
+		is => 'rw',
+		isa => 'ArrayRef',
+		default => sub { [] },
+		traits => ['Array'],
+		predicate => 'has_data',
+		handles => {
+			    all    => 'elements',
+			    count  => 'count',
+			    add    => 'push',
+			    pop    => 'pop',
+			   },
+	       );
+
+
 with 'FileDirUtil';
 with 'Bio::RNA::RNAaliSplit::Roles';
 
@@ -61,46 +165,30 @@ sub BUILD {
 sub run_rscape {
   my $self = shift;
   my $this_function = (caller(0))[3];
-  my ($out_fn,$sout_fn,$out,$sout,$sum_fn,$sum);
-  my ($R2Rsto_fn,$R2Rsto,$R2Rstopdf_fn,$R2Rstopdf,$R2Rstosvg_fn,$R2Rstosvg);
+  my ($out_fn,$sout_fn,$out,$sout);
   my $tag = "";
   if ($self->has_statistic){$tag = ".".$self->statistic};
   print ">> self->statistic is ".$self->statistic."\n";
 
   if ($self->has_basename){
-    $out_fn = $self->bn.$tag."."."rscape.out";
-    $sout_fn = $self->bn.$tag."."."rscape.sorted.out";
-    $sum_fn = $self->bn.$tag."."."rscape.sum";
-    $R2Rsto_fn = $self->bn.$tag."."."R2R.sto";
-    $R2Rstopdf_fn = $self->bn.$tag."."."R2R.sto.pdf";
-    $R2Rstosvg_fn = $self->bn.$tag."."."R2R.sto.svg";
+    $out_fn = $self->basename.$tag."."."rscape.out";
+    $sout_fn = $self->basename.$tag."."."rscape.sorted.out";
   }
   elsif ($self->has_ifilebn){
     $out_fn = $self->ifilebn.$tag."."."rscape.out";
     $sout_fn = $self->ifilebn.$tag."."."rscape.sorted.out";
-    $sum_fn = $self->ifilebn.$tag."."."rscape.sum";
-    $R2Rsto_fn = $self->ifilebn.$tag."."."R2R.sto";
-    $R2Rstopdf_fn = $self->ifilebn.$tag."."."R2R.sto.pdf";
-    $R2Rstosvg_fn = $self->ifilebn.$tag."."."R2R.sto.svg";
   }
   else{
     $out_fn = $tag."rscape.out";
     $sout_fn = $tag."rscape.sorted.out";
-    $sum_fn = $tag."rscape.sum";
-    $R2Rsto_fn = $tag."R2R.sto";
-    $R2Rstopdf_fn = $tag."R2R.sto.pdf";
-    $R2Rstosvg_fn = $tag."R2R.sto.svg";
   }
   $out = file($oodir,$out_fn); # R-scape stdout
   $sout = file($oodir,$sout_fn); # R-scape sorted stdout
-  $sum = file($oodir,$sum_fn); # R-scape .sum output
-  $R2Rsto = file($oodir,$R2Rsto_fn); # R-scape R2R Stockholm file
-  $R2Rstopdf = file($oodir,$R2Rstopdf_fn); # R-scape R2R PDF
-  $R2Rstosvg = file($oodir,$R2Rstosvg_fn); # R-scape R2R SVG
 
-  open my $fh, ">", $out;
-  my $rscape_options = "";
-  if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "}
+  # open my $fh, ">", $out;
+  my $rscape_out = "rscape.out";
+  my $rscape_options = " -o $rscape_out --outdir $oodir ";
+  if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
   my $cmd = $rscape.$rscape_options.$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $cmd, verbose => 0 );
@@ -111,43 +199,69 @@ sub run_rscape {
     print join "", @$full_buf;
     croak $!;
   }
-  my $stdout_buffer = join "", @$stdout_buf;
-  my @rscapestdout = split /\n/, $stdout_buffer;
-  foreach my $line( @rscapestdout){
-    print $fh $line,"\n";
-  }
-  close($fh);
+  #my $stdout_buffer = join "", @$stdout_buf;
+  #my @rscapestdout = split /\n/, $stdout_buffer;
+  #foreach my $line( @rscapestdout){
+  #  print $fh $line,"\n";
+  #}
+  #close($fh);
 
-#  $self->_parse_rnaalifold($stdout_buffer);
+  $self->_parse_rscape($rscape_out);
 
-  #--
   print "rename $out_fn -> $out\n";
-  rename $out_fn, $out;
-  rename $sout_fn, $sout;
-#  rename "alidot.ps", $alidotps;
-#  rename "RNAalifold_results.stk", $alifoldstk;
-#  unlink "alifold.out";
+  rename $rscape_out, $out;
+  rename $rscape_out.".sorted", $sout;
+  # TODO: rename the remeaining R-scape output files in $oodir
 }
 
-# parse RNAalifold output
-sub _parse_rnaalifold {
+# parse R-scape output
+# canonical R-scape output is expected to look like this:
+#  MSA myaln nseq 9 (9) alen 45 (45) avgid 79.51 (79.51) nbpairs 11 (11)
+#  contacts  11 (11 bpairs 11 wc bpairs)
+#  maxD      8.00
+#  mind      1
+#  Method Target_E-val [cov_min,conv_max] [FP | TP True Found | Sen PPV F] 
+#  RAFS    0.05           [-1.00,0.83]    [0 | 3 11 3 | 27.27 100.00 42.86] 
+#        left_pos       right_pos        score   E-value
+# ------------------------------------------------------------
+#*	        20	        36	0.83	0.000328218
+#*	        21	        35	0.83	0.000328218
+#*	        22	        34	0.33	0.0497359
+
+sub _parse_rscape {
   my ($self,$out) = @_;
   my $this_function = (caller(0))[3];
-  my @buffer=split(/^/, $out);
+  my @buffer = ();
 
-  foreach my $i (0..$#buffer){
-    next unless ($i == 1); # just parse consensus structure
-    unless ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s*(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(-?\d+\.\d+)\]/){
-      carp "ERROR [$this_function]  cannot parse RNAalifold output:";
-      croak $self->ifile.":\n$buffer[$i]";
+  open my $file, "<", $out or croak "ERROR: [$this_function] Cannot open file $out";
+  while(<$file>){
+    chomp;
+    if (m/^#\s+MSA\s+([a-zA-Z0-9_.|]+)\s+nseq\s+(\d+)\s+\(\d+\)\s+alen\s+(\d+)\s+\(\d+\)\s+avgid\s+(\d+\.\d+)\s+\(\d+\.\d+\)\s+nbpairs\s+(\d+)\s+\(\d+\)/g){
+      $self->nseq($2);
+      $self->alen($3);
+      $self->nbpairs($5);
+      next;
     }
-    $self->consensus_struc($1);
-    $self->consensus_mfe($2);
-    $self->consensus_energy($3);
-    $self->consensus_covar_terms($4);
-    $self->sci($5);
-    last;
+    if (m/^#\s+([a-zA-Z0-9]+)\s+(\d+\.\d+)\s+\[(\-?\d+\.\d+),(-?\d+\.\d+)\]\s+\[(\d+)\s+\|\s+(\d+)\s+(\d+)\s+(\d+)\s+\|\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\]/g){
+      $self->evalue($2);
+      $self->FP($5);
+      $self->TP($6);
+      $self->T($7);
+      $self->F($8);
+      $self->Sen($9);
+      $self->PPV($10);
+      $self->Fmeasure($11);
+    }
+    if (m/^\*\s+(\d+)\s+(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$/){
+      my %bp = (i => $1,
+		j => $2,
+		score => $3,
+		evalue => $4);
+      push @{$self->sigBP}, \%bp;
+    }
   }
+  close ($file);
+
 }
 
 1;

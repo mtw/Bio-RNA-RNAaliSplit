@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-05-28 17:00:38 mtw>
+# Last changed Time-stamp: <2017-07-05 13:11:35 mtw>
 # -*-CPerl-*-
 #
 # usage: split_stockholm.pl -a myln.stk
@@ -8,7 +8,6 @@
 use version; our $VERSION = qv('0.05');
 use strict;
 use warnings;
-use Bio::RNA::RNAaliSplit::WrapRNAalifold;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
