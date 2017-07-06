@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-07-05 17:57:19 mtw>
+# Last changed Time-stamp: <2017-07-06 12:56:27 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -123,6 +123,12 @@ has 'Fmeasure' => (
 		   init_arg => undef,
 	     );
 
+has 'nofigures' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_nofigures',
+		    documentation => q(Turn off all image procudtion by R-scape),
+		   );
 
 has 'sigBP' => ( # significantly covarying base pairs
 		is => 'rw',
@@ -168,7 +174,6 @@ sub run_rscape {
   my ($out_fn,$sout_fn,$out,$sout);
   my $tag = "";
   if ($self->has_statistic){$tag = ".".$self->statistic};
-  print ">> self->statistic is ".$self->statistic."\n";
 
   if ($self->has_basename){
     $out_fn = $self->basename.$tag."."."rscape.out";
@@ -188,8 +193,10 @@ sub run_rscape {
   # open my $fh, ">", $out;
   my $rscape_out = "rscape.out";
   my $rscape_options = " -o $rscape_out --outdir $oodir ";
+  if ($self->has_nofigures && $self->nofigures == 1){$rscape_options.=" --nofigures "};
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
   my $cmd = $rscape.$rscape_options.$self->ifile;
+ # print "+++ $cmd\n";
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $cmd, verbose => 0 );
   if( !$success ) {
@@ -208,7 +215,6 @@ sub run_rscape {
 
   $self->_parse_rscape($rscape_out);
 
-  print "rename $out_fn -> $out\n";
   rename $rscape_out, $out;
   rename $rscape_out.".sorted", $sout;
   # TODO: rename the remeaining R-scape output files in $oodir
