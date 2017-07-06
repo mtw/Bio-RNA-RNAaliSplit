@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2017-07-06 12:56:27 mtw>
+# Last changed Time-stamp: <2017-07-06 19:47:19 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -34,12 +34,19 @@ has 'statistic' => (
 		    default => 'RAFS',
 		    documentation => q(Covariation statistic),
 		   );
+has 'cseq' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_cseq',
+		    documentation => q(Number of sequences counted from stk file),
+		    init_arg => undef,
+	      );
 
 has 'nseq' => (
 		    is => 'rw',
 		    isa => 'Int',
 		    predicate => 'has_nseq',
-		    documentation => q(Number of sequences),
+		    documentation => q(Number of sequences returned by R-scape),
 		    init_arg => undef,
 	      );
 
@@ -165,7 +172,22 @@ sub BUILD {
   confess "ERROR [$this_function] could not create output directory $self->oodir"
     if (@$err);
   $self->set_ifilebn;
-  $self->run_rscape();
+  $self->_count_seq();
+  if ($self->cseq > 1){ $self->run_rscape() }
+}
+
+sub _count_seq {
+  my $self = shift;
+  my $this_function = (caller(0))[3];
+  my $count = 0;
+  open my $stk, "<", $self->ifile or croak "ERROR [$this_function] Cannot open Stockholm file $self->ifile for reading";
+  while (<$stk>){
+    next if (/^#/);
+    next if (/^\/\//);
+    $count++;
+  }
+  close ($stk);
+  $self->cseq($count);
 }
 
 sub run_rscape {
@@ -192,7 +214,7 @@ sub run_rscape {
 
   # open my $fh, ">", $out;
   my $rscape_out = "rscape.out";
-  my $rscape_options = " -o $rscape_out --outdir $oodir ";
+  my $rscape_options = " -o $rscape_out --rna --outdir $oodir ";
   if ($self->has_nofigures && $self->nofigures == 1){$rscape_options.=" --nofigures "};
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
   my $cmd = $rscape.$rscape_options.$self->ifile;
@@ -217,6 +239,7 @@ sub run_rscape {
 
   rename $rscape_out, $out;
   rename $rscape_out.".sorted", $sout;
+  #print " >>> rename $rscape_out -> $out\n";
   # TODO: rename the remeaining R-scape output files in $oodir
 }
 
@@ -238,7 +261,8 @@ sub _parse_rscape {
   my ($self,$out) = @_;
   my $this_function = (caller(0))[3];
   my @buffer = ();
-
+  my $parse1 = 0;
+  my $parse2 = 0;
   open my $file, "<", $out or croak "ERROR: [$this_function] Cannot open file $out";
   while(<$file>){
     chomp;
@@ -246,6 +270,7 @@ sub _parse_rscape {
       $self->nseq($2);
       $self->alen($3);
       $self->nbpairs($5);
+      $parse1 = 1;
       next;
     }
     if (m/^#\s+([a-zA-Z0-9]+)\s+(\d+\.\d+)\s+\[(\-?\d+\.\d+),(-?\d+\.\d+)\]\s+\[(\d+)\s+\|\s+(\d+)\s+(\d+)\s+(\d+)\s+\|\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\]/g){
@@ -257,6 +282,8 @@ sub _parse_rscape {
       $self->Sen($9);
       $self->PPV($10);
       $self->Fmeasure($11);
+      $parse2 = 1;
+      next;
     }
     if (m/^\*\s+(\d+)\s+(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$/){
       my %bp = (i => $1,
@@ -267,7 +294,28 @@ sub _parse_rscape {
     }
   }
   close ($file);
+  croak "ERROR: [$this_function] could not reliably parse MSA line from R-scape output"
+    unless ($parse1 == 1);
+  croak "ERROR: [$this_function] could not reliably parse summary line from R-scape output"
+    unless ($parse2 == 1);
+  $self->_check_attributes();
+}
 
+sub _check_attributes {
+  my ($self,$out) = @_;
+  my $this_function = (caller(0))[3];
+
+  $self->has_nseq     ? 1 : croak "ERROR [$this_function] \$self->nseq not set ". $self->ifile;
+  $self->has_alen     ? 1 : croak "ERROR [$this_function] \$self->alen not set". $self->ifile;
+  $self->has_nbpairs  ? 1 : croak "ERROR [$this_function] \$self->nbpairs not set". $self->ifile;
+  $self->has_evalue   ? 1 : croak "ERROR [$this_function] \$self->evalue not set". $self->ifile;
+  $self->has_FP       ? 1 : croak "ERROR [$this_function] \$self->FP not set". $self->ifile;
+  $self->has_TP       ? 1 : croak "ERROR [$this_function] \$self->TP not set". $self->ifile;
+  $self->has_T        ? 1 : croak "ERROR [$this_function] \$self->T not set". $self->ifile;
+  $self->has_F        ? 1 : croak "ERROR [$this_function] \$self->F not set". $self->ifile;
+  $self->has_Sen      ? 1 : croak "ERROR [$this_function] \$self->Sen not set". $self->ifile;
+  $self->has_PPV      ? 1 : croak "ERROR [$this_function] \$self->PPV not set". $self->ifile;
+  $self->has_Fmeasure ? 1 : croak "ERROR [$this_function] \$self->Fmeasure not set". $self->ifile;
 }
 
 1;

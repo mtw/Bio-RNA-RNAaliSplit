@@ -7,6 +7,6 @@ log=/scr/hell/mtw/Work/Nitrososphaera/aln/rscape.log
 
 for file in $(find . -name \*stk -print0 | xargs -0) 
 do	
-	$wraprscape -a $file -o $outdir -s $stat -l $log --nofigures
+	 qsub perl $wraprscape -a $file -o $outdir -s $stat -l $log --nofigures
 done
 

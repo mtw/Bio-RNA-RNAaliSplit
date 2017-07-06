@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-07-06 12:48:48 mtw>
+# Last changed Time-stamp: <2017-07-06 19:52:14 mtw>
 # -*-CPerl-*-
 #
 # A wrapper for R-scape
@@ -22,16 +22,19 @@ use Carp;
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 
 my $show_version = 0;
-my ($id,$stkfile);
+my ($id,$stkfile,$logfile);
+my $handle=undef;
 my $nofigures = 0;
 my $outdir = "rscape";
 my $stat = "GTp";
+my $have_logfile=0;
 use diagnostics;
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("a|aln=s"        => \$stkfile,
 					   "s|statistic=s"  => \$stat,
 					   "o|out=s"        => \$outdir,
+					   "l|log=s"        => \&set_logfile,
 					   "nofigures"      => sub{$nofigures = 1},
                                            "version"        => sub{$show_version = 1},
                                            "man"            => sub{pod2usage(-verbose => 2)},
@@ -42,6 +45,21 @@ if ($show_version == 1){
   print "wrap_R-scape.pl $VERSION\n";
   exit(0);
 }
+
+sub set_logfile {
+  $logfile=$_[1];
+  $have_logfile=1;
+}
+
+if ($have_logfile == 1){
+  open($handle, ">>", $logfile)
+    || die "$0: can't open $logfile for appending: $!";
+}
+else{
+  open($handle, ">&", STDOUT)
+    || die "$0: can't open handle for STDOUT: $!";
+}
+
 
 my @odir = split /\//, $outdir;
 
@@ -57,8 +75,15 @@ my $r = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stkfile,
 					      );
 #print Dumper($r);
 
-print join "\t", ($r->TP,$r->statistic,$r->alen,$r->nbpairs,$r->nseq, $r->TP/$r->nbpairs,$stkfile);
-print "\n";
+if ($r->cseq <= 1){ # stk file had only one sequence
+  print $handle join "\t", ($stkfile, "n/a");
+}
+else{ # normal stk file
+  my $ratio;
+  $r->nbpairs > 0 ? ($ratio = $r->TP/$r->nbpairs) : ($ratio = 0);
+  print $handle join "\t", ($stkfile,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq, $ratio);
+}
+print $handle "\n";
 
 __END__
 
@@ -77,12 +102,11 @@ This is a Perl wrapper for R-scape >v0.6.1
 alignment in Stockholm format and runs R-scape on it, determining
 statistically significant covarying base pairs (SSCBP).
 
-The number of SSCBP is reported on STDOUT, together with the applied
-covariance statistic, the lenth of the alignment, as well as the
-number of base pairs and sequences. In addition the fraction of SSCBP
-over all base pairs and the input file name is listed for further
-processing. R-scape output files are written to a user-defined
-directory.
+The applied covariance statistic, the number of SSCBP, the lenth of
+the alignment, as well as the number of base pairs and sequences is
+reopted on STDOUT. In addition the fraction of SSCBP over all base
+pairs and the input file name is listed for further processing. All
+R-scape output files are written to a user-defined directory.
 
 This script was inteded as simple R-scape warpper. As such, it does
 not implement (and pass through) all R-scape options.
@@ -109,6 +133,10 @@ manual for details.
 =item B<--nofigures>
 
 Turn off production of graphical R-scape output
+
+=item B<--log|-l>
+
+Specify log file; output is written to STDOUT unless specified
 
 =item B<--version>
 
