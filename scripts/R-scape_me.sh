@@ -1,7 +1,7 @@
 #!/bin/bash
 
 wraprscape=$HOME/Perl/MyModules/Bio-RNA-RNAaliSplit/scripts/wrap_R-scape.pl
-stks=$(ls *stk)
+stks=$(find . -name *stk)
 
 for file in $stks
 do	
