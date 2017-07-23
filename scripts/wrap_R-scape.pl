@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-07-06 19:52:14 mtw>
+# Last changed Time-stamp: <2017-07-23 22:24:32 mtw>
 # -*-CPerl-*-
 #
 # A wrapper for R-scape
@@ -52,14 +52,13 @@ sub set_logfile {
 }
 
 if ($have_logfile == 1){
-  open($handle, ">>", $logfile)
+  open($handle, ">", $logfile)
     || die "$0: can't open $logfile for appending: $!";
 }
 else{
   open($handle, ">&", STDOUT)
     || die "$0: can't open handle for STDOUT: $!";
 }
-
 
 my @odir = split /\//, $outdir;
 
@@ -79,9 +78,9 @@ if ($r->cseq <= 1){ # stk file had only one sequence
   print $handle join "\t", ($stkfile, "n/a");
 }
 else{ # normal stk file
-  my $ratio;
-  $r->nbpairs > 0 ? ($ratio = $r->TP/$r->nbpairs) : ($ratio = 0);
-  print $handle join "\t", ($stkfile,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq, $ratio);
+#  my $ratio;
+#  $r->nbpairs > 0 ? ($ratio = $r->TP/$r->nbpairs) : ($ratio = 0);
+  print $handle join "\t", ($stkfile,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq);
 }
 print $handle "\n";
 
@@ -93,7 +92,8 @@ wrap_R-scape.pl - Wrapper script for R-scape >v0.6.1
 
 =head1 SYNOPSIS
 
-wrap_R-scape.pl [--aln|-a I<FILE>] [--statistic|-s I<STRING>] [--nofigures] [options]
+wrap_R-scape.pl [--aln|-a I<FILE>] [-out|-o I<DIR>] [--log|-l I<FILE>]
+[--statistic|-s I<STRING>] [--nofigures] [options]
 
 =head1 DESCRIPTION
 
@@ -102,11 +102,12 @@ This is a Perl wrapper for R-scape >v0.6.1
 alignment in Stockholm format and runs R-scape on it, determining
 statistically significant covarying base pairs (SSCBP).
 
-The applied covariance statistic, the number of SSCBP, the lenth of
-the alignment, as well as the number of base pairs and sequences is
-reopted on STDOUT. In addition the fraction of SSCBP over all base
-pairs and the input file name is listed for further processing. All
-R-scape output files are written to a user-defined directory.
+The input file name, the applied covariance statistic, the number of
+SSCBP, the lenth of the alignment, as well as the number of base pairs
+and sequences is reported for further processing. All R-scape output
+files are written to a user-defined directory.
+
+=head1 DISCLAIMER
 
 This script was inteded as simple R-scape warpper. As such, it does
 not implement (and pass through) all R-scape options.
@@ -153,6 +154,7 @@ paper|http://eddylab.org/publications/RivasEddy16/RivasEddy16-preprint.pdf>.
 
 =head1 AUTHOR
 
-Michael T. Wolfinger E<lt>michael@wolfinger.euE<gt> and E<lt>michael.wolfinger@univie.ac.atE<gt>
+Michael T. Wolfinger E<lt>michael@wolfinger.euE<gt> and
+E<lt>michael.wolfinger@univie.ac.atE<gt>
 
 =cut
