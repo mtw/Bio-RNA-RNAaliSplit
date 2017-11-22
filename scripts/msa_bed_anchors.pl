@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-05-28 17:00:23 mtw>
+# Last changed Time-stamp: <2017-11-22 18:09:14 mtw>
 # -*-CPerl-*-
 #
 # Create BED6 anchors for columns in a multiple sequence alignment
@@ -67,7 +67,7 @@ foreach (@regions){
   }
 }
 
-print Dumper(\@regions);die;
+print Dumper(\@regions);
 
 my $input_AlignIO = Bio::AlignIO->new(-file => $alifile,
 				      -format => $format,
