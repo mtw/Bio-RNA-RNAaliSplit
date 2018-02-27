@@ -16,6 +16,8 @@ Revision history for Bio::RNA::RNAaliSplit
 	- remove obsolete symbols
 	- use FileDirUtil consistently instead of custom FileDir.pm 
 
-0.05.1	Tue Jul 4 2017
-	- initial release of scripts/reformat_aln
+0.06	Tue Feb 27 2018
+        - added R-scape wrapper
+	- added scripts/eval_alignment.pl
 	- added Path::Class::File dependency to Makefile.PL
+        - make wrap_R-scape.pl produce a unique logfile for each input stk alignment
