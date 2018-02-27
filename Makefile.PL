@@ -7,7 +7,7 @@ use File::ShareDir::Install;
 
 install_share 'share';
 
-my @scripts = qw (RNAalisplit.pl);
+my @scripts = qw (RNAalisplit.pl eval_alignment.pl);
 
 WriteMakefile(
 	      NAME               => 'Bio::RNA::RNAaliSplit',
