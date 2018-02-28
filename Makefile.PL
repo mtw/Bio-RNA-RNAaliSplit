@@ -25,6 +25,8 @@ WriteMakefile(
 				     'Test::Prereq' => 0,
 				    },
 	      PREREQ_PM          => {
+				     "Cwd" => "0",
+				     "diagnostics" => "0",
 				     "lib" => "0",
 				     "strict" => "0",
 				     "warnings" => "0",
