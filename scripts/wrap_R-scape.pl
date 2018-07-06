@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2018-07-06 15:50:03 mtw>
+# Last changed Time-stamp: <2018-07-06 16:05:01 mtw>
 # -*-CPerl-*-
 #
 # A wrapper for R-scape
@@ -72,7 +72,7 @@ my $r = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stkfile,
 					       nofigures => $nofigures,
 					       odir => \@odir,
 					      );
-print Dumper($r);
+#print Dumper($r);
 
 if ($r->cseq <= 1){ # stk file had only one sequence
   print $handle join "\t", ($stkfile, "n/a");
