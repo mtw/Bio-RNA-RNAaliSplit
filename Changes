@@ -21,3 +21,6 @@ Revision history for Bio::RNA::RNAaliSplit
 	- added scripts/eval_alignment.pl
 	- added Path::Class::File dependency to Makefile.PL
 	- added WrapRscape test
+
+0.06.1	Fri Jul 06 2018
+	- catch & properly handle R-scape output status
