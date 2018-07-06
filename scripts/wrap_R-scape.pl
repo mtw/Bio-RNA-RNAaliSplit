@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-07-23 22:24:32 mtw>
+# Last changed Time-stamp: <2018-07-06 15:50:03 mtw>
 # -*-CPerl-*-
 #
 # A wrapper for R-scape
@@ -7,7 +7,7 @@
 # usage: wrap_R-scape.pl -a myaln.stk --statistics RAFS
 #
 
-use version; our $VERSION = qv('0.05.2');
+use version; our $VERSION = qv('0.06.1');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit::WrapRscape;
@@ -72,17 +72,21 @@ my $r = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stkfile,
 					       nofigures => $nofigures,
 					       odir => \@odir,
 					      );
-#print Dumper($r);
+print Dumper($r);
 
 if ($r->cseq <= 1){ # stk file had only one sequence
   print $handle join "\t", ($stkfile, "n/a");
 }
 else{ # normal stk file
-#  my $ratio;
-#  $r->nbpairs > 0 ? ($ratio = $r->TP/$r->nbpairs) : ($ratio = 0);
-  print $handle join "\t", ($stkfile,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq);
+  my $str;
+  if ($r->status == 0){ # R-scape went through and gave results
+    $str = join ("\t",$stkfile,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq)."\n";
+  }
+  else {
+    $str = join("\t",$stkfile,$r->statistic,"nodata")."\n";
+  }
+  print $handle $str;
 }
-print $handle "\n";
 
 __END__
 
