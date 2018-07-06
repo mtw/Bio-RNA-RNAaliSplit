@@ -1,11 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2018-02-27 23:22:24 mtw>
+# Last changed Time-stamp: <2018-07-06 16:00:09 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
 package Bio::RNA::RNAaliSplit;
 
-use version; our $VERSION = qv('0.06');
+use version; our $VERSION = qv('0.06.1');
 use Carp;
 use Data::Dumper;
 use Moose;
