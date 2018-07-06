@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2018-02-28 18:09:33 mtw>
+# Last changed Time-stamp: <2018-07-06 15:26:53 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
-use version; our $VERSION = qv('0.06');
+use version; our $VERSION = qv('0.06.1');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -150,6 +150,13 @@ has 'sigBP' => ( # significantly covarying base pairs
 			    pop    => 'pop',
 			   },
 	       );
+
+has 'status' => (
+		 is => 'rw',
+		 isa => 'Int',
+		 predicate => 'has_status',
+		 documentation => q(R-scape program status), # 0:OK ; >0:NOTOK
+		);
 
 
 with 'FileDirUtil';
@@ -294,11 +301,14 @@ sub _parse_rscape {
     }
   }
   close ($file);
-  croak "ERROR: [$this_function] could not reliably parse MSA line from R-scape output"
+  carp "WARNING: [$this_function] could not reliably parse MSA line from R-scape output"
     unless ($parse1 == 1);
-  croak "ERROR: [$this_function] could not reliably parse summary line from R-scape output"
+  carp "WARNING: [$this_function] could not reliably parse summary line from R-scape output"
     unless ($parse2 == 1);
-  $self->_check_attributes();
+  if ($parse1 == 1 && $parse2 == 1){
+    $self->_check_attributes();
+    $self->status(0);}
+  else{$self->status(1)}
 }
 
 sub _check_attributes {
