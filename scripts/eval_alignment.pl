@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2018-01-10 16:18:47 mtw>
+# Last changed Time-stamp: <2018-07-06 15:53:05 mtw>
 # -*-CPerl-*-
 #
 # A structural alignment evaluator
@@ -7,7 +7,7 @@
 # usage: eval_alignment.pl -a myaln.stk --statistics RAFS
 #
 
-use version; our $VERSION = qv('0.05.3');
+use version; our $VERSION = qv('0.06.1');
 use strict;
 use warnings;
 use File::Basename;
@@ -97,8 +97,15 @@ if ($r->cseq <= 1){ # stk file had only one sequence
 else{ # normal stk file
   my $hint = "-";
   my $prob=sprintf("%6.4f",$z->P);
-  ($prob>0.9 && $r->TP>1) ? ($hint = "*") : ($hint = "-");
-  print $handle join("\t",$hint,$stkfile,$prob,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq)."\n";
+  my $str;
+  if ($r->status == 0){ # R-scape went through and gave results
+    ($prob>0.9 && $r->TP>1) ? ($hint = "*") : ($hint = "-");
+    $str = join("\t",$hint,$stkfile,$prob,$r->statistic,$r->TP,$r->alen,$r->nbpairs,$r->nseq)."\n";
+  }
+  else{
+    $str = join("\t",$hint,$stkfile,$prob,"nodata")."\n";
+  }
+  print $handle $str;
 }
 
 
