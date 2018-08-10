@@ -3,6 +3,7 @@ Revision history for Bio::RNA::RNAaliSplit
 0.07
 	- catch & properly handle R-scape output status
 	- add 'format' and 'SS_cons' attributes to WrapRNAalifold.pm
+	- don't print genomic loci in reformat_aln.pl output
 
 0.06	Wed Feb 28 2018
         - added R-scape wrapper
