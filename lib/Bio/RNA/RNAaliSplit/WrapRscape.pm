@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2018-07-06 15:26:53 mtw>
+# Last changed Time-stamp: <2018-12-29 00:06:57 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
-use version; our $VERSION = qv('0.06.1');
+use version; our $VERSION = qv('0.07');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -315,6 +315,7 @@ sub _check_attributes {
   my ($self,$out) = @_;
   my $this_function = (caller(0))[3];
 
+  $self->has_cseq     ? 1 : croak "ERROR [$this_function] \$self->cseq not set ". $self->ifile;
   $self->has_nseq     ? 1 : croak "ERROR [$this_function] \$self->nseq not set ". $self->ifile;
   $self->has_alen     ? 1 : croak "ERROR [$this_function] \$self->alen not set". $self->ifile;
   $self->has_nbpairs  ? 1 : croak "ERROR [$this_function] \$self->nbpairs not set". $self->ifile;
