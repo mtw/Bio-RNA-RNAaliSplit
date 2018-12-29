@@ -22,7 +22,7 @@ ViennaRNA are used by RNAaliSplit.
 RNAz (availale from http://www.tbi.univie.ac.at/~wash/RNAz) is used for
 classification of split subalignments.
 
-R-scape (availavle from http://www.eddylab.org/R-scape) is used for
+R-scape 0.6.1 (availavle from http://www.eddylab.org/R-scape) is used for
 computing statistically significant covariation in base pairs.
 
 Be sure to have all dependencies up and running on your system (and
