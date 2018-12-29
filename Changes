@@ -1,8 +1,10 @@
 Revision history for Bio::RNA::RNAaliSplit
 
-0.07
+0.07	Sat Dec 29 2018
 	- catch & properly handle R-scape output status
-	- add 'format' and 'SS_cons' attributes to WrapRNAalifold.pm
+	- added 'format' and 'SS_cons' attributes to WrapRNAalifold.pm
+	- refactored WrapRscape tests
+	- updated shipped File::ShareDir::Install to v0.13 
 
 0.06	Wed Feb 28 2018
         - added R-scape wrapper
