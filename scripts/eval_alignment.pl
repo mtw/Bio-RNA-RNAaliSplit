@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2018-07-27 23:20:25 mtw>
+# Last changed Time-stamp: <2018-12-28 12:47:12 mtw>
 # -*-CPerl-*-
 #
 # A structural alignment evaluator
@@ -7,7 +7,7 @@
 # usage: eval_alignment.pl -a myaln.stk --statistics RAFS
 #
 
-use version; our $VERSION = qv('0.06.1');
+use version; our $VERSION = qv('0.07');
 use strict;
 use warnings;
 use File::Basename;
@@ -164,7 +164,7 @@ covariance statistic, the number of SSCBP, the lenth of the alignment,
 as well as the number of base pairs and sequences to stdout. R-scapoe
 and RNAz output files are written to a user-defined directory.
 
-Note that this script removed gap-only sequences from the alignment
+Note that this script removes gap-only sequences from the alignment
 since RNAz does not accept them.
 
 =head1 DISCLAIMER
@@ -172,7 +172,7 @@ since RNAz does not accept them.
 This script employs a simple R-scape/RNAz warpper. As such, it does
 not implement (and pass through) all R-scape/RNAz options.
 
-Please ensure that R-scape >v0.6.1 is installed on your machine and
+Please ensure that R-scape v0.6.1 is installed on your machine and
 available for your Perl interpreter.
 
 =head1 OPTIONS
