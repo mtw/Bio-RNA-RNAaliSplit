@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2018-08-07 14:53:21 mtw>
+# Last changed Time-stamp: <2019-01-03 23:57:44 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -90,6 +90,13 @@ has 'RNAalifold_version' => (
 			     init_arg => undef,
 			    );
 
+has 'alignment_stk' => (
+			is => 'rw',
+			isa => 'Path::Class::File',
+			predicate => 'has_stk',
+			init_arg => undef,
+		       );
+
 with 'FileDirUtil';
 with 'Bio::RNA::RNAaliSplit::Roles';
 
@@ -169,6 +176,7 @@ sub run_rnaalifold {
   close($fh);
 
   $self->_parse_rnaalifold($stdout_buffer);
+  $self->alignment_stk($alifoldstk);
   rename "aln.ps", $alnps;
   rename "alirna.ps", $alirnaps;
   rename "alidot.ps", $alidotps;
