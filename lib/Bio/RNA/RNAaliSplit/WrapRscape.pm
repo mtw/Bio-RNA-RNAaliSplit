@@ -1,11 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2018-12-29 00:06:57 mtw>
+# Last changed Time-stamp: <2019-01-03 21:10:57 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
 # wrapper for R-scape
 #
-# Requires R-scape executable available to the Perl interpreter.
+# Requires R-scape v1.2.2 or above available to the Perl interpreter.
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
