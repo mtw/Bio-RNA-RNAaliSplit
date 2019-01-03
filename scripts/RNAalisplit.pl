@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2017-05-28 17:03:26 mtw>
+# Last changed Time-stamp: <2019-01-04 00:37:48 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -7,17 +7,19 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
-use version; our $VERSION = qv('0.05');
+use version; our $VERSION = qv('0.07.1');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
 use Bio::RNA::RNAaliSplit::WrapRNAz;
+use Bio::RNA::RNAaliSplit::WrapRscape;
 use Bio::RNA::RNAaliSplit::WrapRNAalifold;
 use Bio::RNA::RNAaliSplit::WrapAnalyseDists;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
 use Path::Class;
+use File::Basename;
 use Carp;
 use RNA;
 #use diagnostics;
@@ -28,25 +30,27 @@ use RNA;
 
 my $format = "ClustalW";
 my $method = "dHn"; # SCI | dHn | dHx | dBp | dHB
+my $rscape_stat = "GTp";
 my $outdir = "as";
 my $verbose = undef;
 my @nseqs=();
-my ($dim,$alifile,$fi);
+my ($alifile,$fi);
 my $scaleH = 1.;
 my $scaleB = 1.;
 my $show_version = 0;
 my %foldme = (); # HoH of folded input sequences for dBp computation
 
 Getopt::Long::config('no_ignore_case');
-pod2usage(-verbose => 1) unless GetOptions("aln|a=s"    => \$alifile,
-                                           "method|m=s" => \$method,
-					   "out|o=s"    => \$outdir,
-					   "scaleH"     => \$scaleH,
-					   "scaleB"     => \$scaleB,
-					   "verbose|v"  => sub{$verbose = 1},
-					   "version"    => sub{$show_version = 1},
-                                           "man"        => sub{pod2usage(-verbose => 2)},
-                                           "help|h"     => sub{pod2usage(1)}
+pod2usage(-verbose => 1) unless GetOptions("aln|a=s"      => \$alifile,
+                                           "method|m=s"   => \$method,
+					   "out|o=s"      => \$outdir,
+					   "rscapestat=s" => \$rscape_stat,
+					   "scaleH"       => \$scaleH,
+					   "scaleB"       => \$scaleB,
+					   "verbose|v"    => sub{$verbose = 1},
+					   "version"      => sub{$show_version = 1},
+                                           "man"          => sub{pod2usage(-verbose => 2)},
+                                           "help|h"       => sub{pod2usage(1)}
                                            );
 
 if ($show_version == 1){
@@ -83,37 +87,55 @@ while ($done != 1){
 
 sub alisplit {
   my ($alnfile,$odirn) = @_;
+  my $what;
   my $AlignSplitObject = Bio::RNA::RNAaliSplit->new(ifile => $alnfile,
 						    format => $format,
 						    odir => $odirn,
 						    dump => 1);
   #print Dumper($AlignSplitObject);
-  #print Dumper(${$AlignSplitObject->next_aln}{_order});
-  #die;
-  $dim = $AlignSplitObject->next_aln->num_sequences;
-
+  my $dim = $AlignSplitObject->next_aln->num_sequences;
+  my $stkfile = $AlignSplitObject->alignment_stk;
   my $dmfile = make_distance_matrix($AlignSplitObject,$method,$odirn);
 
   # compute Neighbor Joining tree and do split decomposition
   print STDERR "Perform Split Decomposition ...\n";
   my $sd = Bio::RNA::RNAaliSplit::WrapAnalyseDists->new(ifile => $dmfile,
 							odir => $AlignSplitObject->odir);
-						#	basename => $AlignSplitObject->ifilebn);
   print STDERR "Identified ".$sd->count." splits\n";
+
   # run RNAalifold for the input alignment
   my $alifold = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
 							   odir => $AlignSplitObject->odir);
   my $alifold_ribosum = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
 								   odir => $AlignSplitObject->odir,
 								   ribosum => 1);
-  # print Dumper($alifold);die;
+  my $stkfile_alifold = $alifold_ribosum->alignment_stk;
+  #print Dumper($alifold);die;
+
   # run RNAz for the input alignment
   my $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $alnfile,
 						  odir => $AlignSplitObject->odir);
   # print Dumper($rnaz);die;
-  print join "\t", "#hit","RNAz prob","z-score","SCI","seqs","consensus structure","alignment\n";
-  print join "\t", "-",$rnaz->P,$rnaz->z,$alifold->sci,$dim,$alifold_ribosum->consensus_struc,$alnfile."\n";
 
+  # run R-scape for the input alignment
+  print "--> rscape_stat $rscape_stat <--\n";
+  my $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stkfile,
+						      statistic => $rscape_stat,
+						      nofigures => 1,
+						      odir => $AlignSplitObject->odir);
+
+ 
+  my $rscape_alifoldstk = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stkfile_alifold,
+								 statistic => $rscape_stat,
+								 nofigures => 1,
+								 odir => $AlignSplitObject->odir);
+  #print Dumper($rscape_alifoldstk);
+  $rscape_alifoldstk->status == 0 ? $what = $rscape_alifoldstk->TP : $what = "n/a";
+  print join "\t", "#hit","RNAz prob","z-score","SCI","seqs","statistic","SSCBP","consensus structure","alignment\n";
+  print join "\t", "-",$rnaz->P,$rnaz->z,$alifold->sci,$dim,$rscape_alifoldstk->statistic,
+    $what,$alifold_ribosum->consensus_struc,$alnfile."\n";
+
+  #TODO: implement R-scape for the two sets in the below while loop
   # extract split sets and run RNAz on each of them
   my $splitnr=1;
   while (my $sets = $sd->pop()){
@@ -427,6 +449,14 @@ truncated strucure conservation index of two sequences. The latter,
 however, is not a metric and therefore often results in negative
 branch lengths in Neighbor Joining trees. Use with caution. [default:
 'dHn']
+
+=item B<--rscapestat>
+
+R-scape covariation statistic. Allowed values are: 'GT', 'MI', 'MIr',
+'MIg', 'CHI', 'OMES', 'RAF', 'RAFS'. Appending either 'p' or 'a' to
+any of them calculates its average product correction and average sum
+correction, respctively (e.g. GTp or GTa). See the R-scape manual for
+details.
 
 =item B<--out|-o>
 
