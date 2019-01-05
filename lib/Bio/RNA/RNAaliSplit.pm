@@ -1,11 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-01-03 23:26:54 mtw>
+# Last changed Time-stamp: <2019-01-05 21:31:45 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
 package Bio::RNA::RNAaliSplit;
 
-use version; our $VERSION = qv('0.07.1');
+use version; our $VERSION = qv('0.08);
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -271,7 +271,7 @@ L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Bio-RNA-RNAaliSplit>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2017-2018 Michael T. Wolfinger <michael@wolfinger.eu> and
+Copyright 2017-2019 Michael T. Wolfinger <michael@wolfinger.eu> and
 <michael.wolfinger@univie.ac.at>
 
 This program is free software; you can redistribute it and/or

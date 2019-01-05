@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2018-12-28 12:43:09 mtw>
+# Last changed Time-stamp: <2019-01-05 21:30:56 mtw>
 # -*-CPerl-*-
 #
 # A wrapper for R-scape
@@ -7,7 +7,7 @@
 # usage: wrap_R-scape.pl -a myaln.stk --statistics RAFS
 #
 
-use version; our $VERSION = qv('0.07');
+use version; our $VERSION = qv('0.08');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit::WrapRscape;
