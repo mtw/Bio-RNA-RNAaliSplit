@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-01-05 01:03:06 mtw>
+# Last changed Time-stamp: <2019-01-05 19:36:46 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -7,7 +7,7 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
-use version; our $VERSION = qv('0.07.1');
+use version; our $VERSION = qv('0.08');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
@@ -111,14 +111,13 @@ sub alisplit {
   $alifold = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
 							odir => $AlignSplitObject->odir,
 							ribosum => $ribosum);
-  my $stkfile_alifold = $alifold->alignment_stk;
 
   # run RNAz for the input alignment
   $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $alnfile,
 					       odir => $AlignSplitObject->odir);
 
   # run R-scape for the input alignment
-  $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stkfile_alifold,
+  $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifold_alignment_stk, # use RNAalifold-generated stk
 						   odir => $AlignSplitObject->odir,
 						   statistic => $rscape_stat,
 						   nofigures => 1);
@@ -156,7 +155,7 @@ sub evaluate_alignment {
 							 odir => $odir,
 							 ribosum => $ribosum);
   $cs = $alifoldo->consensus_struc;
-  $rscapeo =  Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $stk,
+  $rscapeo =  Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifoldo->alignment_stk, # use RNAalifold-generated stk
 						     odir => $odir,
 						     statistic => $rscape_stat,
 						     nofigures => 1);
