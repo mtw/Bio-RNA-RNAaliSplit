@@ -16,6 +16,7 @@ share/aln/all.SL.JEVG.aln
 share/aln/all.SL.SPOVG.aln
 share/aln/all.SL.SPOVG.stk
 share/aln/all.SL.YFVG.aln
+share/aln/RF00050.part.stk
 t/00-load.t
 t/01-prereq.t
 t/02-version.t
