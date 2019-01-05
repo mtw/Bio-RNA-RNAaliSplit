@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-01-03 21:10:57 mtw>
+# Last changed Time-stamp: <2019-01-05 01:00:15 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
-use version; our $VERSION = qv('0.07');
+use version; our $VERSION = qv('0.08');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -270,6 +270,7 @@ sub _parse_rscape {
   my @buffer = ();
   my $parse1 = 0;
   my $parse2 = 0;
+  my $nosbp = 0;
   open my $file, "<", $out or croak "ERROR: [$this_function] Cannot open file $out";
   while(<$file>){
     chomp;
@@ -299,16 +300,30 @@ sub _parse_rscape {
 		evalue => $4);
       push @{$self->sigBP}, \%bp;
     }
+    if (m/^no significant pairs$/){
+      $nosbp=1;
+    }
   }
   close ($file);
-  carp "WARNING: [$this_function] could not reliably parse MSA line from R-scape output"
-    unless ($parse1 == 1);
-  carp "WARNING: [$this_function] could not reliably parse summary line from R-scape output"
-    unless ($parse2 == 1);
+  #carp "WARNING: [$this_function] could not reliably parse MSA line from R-scape output"
+  #  unless ($parse1 == 1);
+  #carp "WARNING: [$this_function] could not reliably parse summary line from R-scape output"
+  #  unless ($parse2 == 1);
+  if ($nosbp == 1){
+    $self->status(1); # no significant basepairs
+    $self->_check_attributes();
+    return;
+  }
   if ($parse1 == 1 && $parse2 == 1){
     $self->_check_attributes();
-    $self->status(0);}
-  else{$self->status(1)}
+    $self->status(0); # all OK
+  }
+  elsif ($parse1 == 1 && $parse2 == 0){
+    $self->status(2); # covariation scores are almost constant, no further analysis
+  }
+  else{
+    croak "ERROR: [$this_function] ambiguous status when parsing rscape output file. parse1:".eval($parse1)." parse2:".eval($parse2)." This shouldn't happen ...";
+    $self->status(1)}
 }
 
 sub _check_attributes {
