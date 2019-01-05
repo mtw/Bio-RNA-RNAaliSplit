@@ -1,5 +1,10 @@
 Revision history for Bio::RNA::RNAaliSplit
 
+0.08
+	- refactored WrapRscape.pm
+	- employ R-scape evaluation in scripts/RNAalisplit.pl
+
+
 0.07	Sat Dec 29 2018
 	- catch & properly handle R-scape output status
 	- added 'format' and 'SS_cons' attributes to WrapRNAalifold.pm
