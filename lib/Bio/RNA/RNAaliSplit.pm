@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-01-05 21:48:10 mtw>
+# Last changed Time-stamp: <2019-01-05 22:27:46 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
@@ -222,7 +222,7 @@ sequence alignments
 
 =head1 VERSION
 
-Version 0.07
+Version 0.08
 
 =cut
 
