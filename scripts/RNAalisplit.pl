@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-01-05 19:36:46 mtw>
+# Last changed Time-stamp: <2019-01-06 19:20:31 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -7,7 +7,7 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
-use version; our $VERSION = qv('0.08');
+use version; our $VERSION = qv('0.08.1');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
@@ -117,7 +117,7 @@ sub alisplit {
 					       odir => $AlignSplitObject->odir);
 
   # run R-scape for the input alignment
-  $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifold_alignment_stk, # use RNAalifold-generated stk
+  $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifold->alignment_stk, # use RNAalifold-generated stk
 						   odir => $AlignSplitObject->odir,
 						   statistic => $rscape_stat,
 						   nofigures => 1);
