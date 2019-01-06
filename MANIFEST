@@ -22,6 +22,6 @@ t/01-prereq.t
 t/02-version.t
 t/11-WrapRNAalifold.t
 t/12-WrapRscape.t
-t/manifest.t
+t/20-executables.t
 t/pod-coverage.t
 t/pod.t

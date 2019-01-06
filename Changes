@@ -1,5 +1,10 @@
 Revision history for Bio::RNA::RNAaliSplit
 
+0.09	Mon Jan 07 2019
+	- use Test2::V0 framework instead of Test::More
+	- fix a typo in scripts/RNAalisplit.pl
+	- overall refactoring
+
 0.08	Sat Jan 05 2019
 	- require R-scape v1.2.2 or above
 	- employ R-scape evaluation in scripts/RNAalisplit.pl

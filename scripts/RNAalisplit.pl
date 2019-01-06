@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-01-06 19:20:31 mtw>
+# Last changed Time-stamp: <2019-01-07 00:40:43 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -7,7 +7,7 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
-use version; our $VERSION = qv('0.08.1');
+use version; our $VERSION = qv('0.09');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
