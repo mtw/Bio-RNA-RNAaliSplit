@@ -19,7 +19,6 @@ WriteMakefile(
 	      MIN_PERL_VERSION   => 5.010,
 	      CONFIGURE_REQUIRES => {
 				     'ExtUtils::MakeMaker' => '6.64',
-				     'File::Spec::Functions' => '0',
 				    },
 	      BUILD_REQUIRES     => {
 				    },
