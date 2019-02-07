@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-01-07 00:40:43 mtw>
+# Last changed Time-stamp: <2019-02-07 16:52:45 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -7,7 +7,7 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
-use version; our $VERSION = qv('0.09');
+use version; our $VERSION = qv('0.10');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
@@ -39,11 +39,25 @@ my ($alifile,$fi);
 my $scaleH = 1.;
 my $scaleB = 1.;
 my $ribosum = 1;
+my $constraint=undef;
 my $show_version = 0;
 my %foldme = (); # HoH of folded input sequences for dBp computation
 
+my %pair = ("AU" => 5,
+	    "GC" => 1,
+	    "CG" => 2,
+	    "UA" => 6,
+	    "GU" => 3,
+	    "GT" => 3,
+	    "TG" => 4,
+	    "UG" => 4,
+	    "AT" => 5,
+	    "TA" => 6);
+
+
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"      => \$alifile,
+					   "constraint|c=s" => \$constraint,
                                            "method|m=s"   => \$method,
 					   "noribosum"    => sub{$ribosum=0},
 					   "out|o=s"      => \$outdir,
@@ -69,6 +83,10 @@ unless (-f $alifile){
 if($method eq "dBp" || $method eq "dHB"){
   $fi = fold_input_alignment($alifile); # for later computation of BP dist
 }
+if($method eq "dBc"){
+  $fi = fold_input_alignment_constrained($alifile,$constraint);
+}
+
 
 my $round = 1;
 my $done = 0;
@@ -369,8 +387,8 @@ sub fold_input_alignment {
       substr($gss,$gappos[$i]+$gaps_inserted,0) = ".";
       $gaps_inserted++;
     }
-   # print $element->display_id."\n$gseq\n$gss\n$seq\n$ss\n";
-   # print join ",", @gappos,"\n---\n";
+    print $element->display_id."\n$gseq\n$gss\n$seq\n$ss\n";
+    print join ",", @gappos,"\n---\n";
     unless (exists($foldin{$element->display_id})){
       $foldin{$element->display_id} = {
 				       gseq => $gseq,
@@ -384,7 +402,73 @@ sub fold_input_alignment {
       croak "ERROR: duplicate sequence identifier in input: ".$element->display_id;
     }
   }
+  die;
   return \%foldin;
+}
+
+sub fold_input_alignment_constrained {
+  my ($aln,$constr) = @_;
+  my %foldin = ();
+  my @pt = make_pair_table($constr);
+  my $input_AlignIO = Bio::AlignIO->new(-file => $alifile,
+				      -format => 'ClustalW'
+				     );
+  my $input_aln = $input_AlignIO->next_aln;
+  foreach my $element ($input_aln->each_seq) {
+    my @gappos = ();
+    my $cons=$constr;
+    my $gseq = $element->seq;
+    print "\n>begin\n$gseq<\n";
+    for (my $p=0; $p<length($gseq);$p++) {
+      # remove non-compatible pairs as well as pairs to a gap position
+      my $c = substr($gseq,$p,1);
+      if ($c eq '-') {
+	push @gappos, $p;
+	substr($cons,$p,1) = 'x'; # mark for removal
+	substr($cons,$pt[$p],1) = '.' 
+	  if $pt[$p]>0  && substr($cons,$pt[$p],1) ne 'x';   # open pair
+      }
+      elsif ($pt[$p]>$p) {
+	substr($cons,$p,1) = substr($cons,$pt[$p],1) = '.'
+	  unless exists $pair{$c . substr($gseq,$pt[$p],1)};
+      }
+    }
+    print STDERR "$cons\n$gseq\n";
+   # print STDERR length($seq), length($cons), "\n";
+    $cons =~ s/x//g;
+    $seq  =~ s/-//g;
+    print STDERR "$cons\n$seq\n";
+    print join ",", @gappos,"\n---\n";
+    # now do constraint folding
+
+    # re-insert gaps into seq and constraint-folded strcuture
+  }
+
+  die;
+}
+
+sub make_pair_table {
+   #indices start at 0 in this version!
+  my $structure = shift;
+  print ">>$structure<<\n";
+   my (@olist, @table);
+   my ($hx,$i) = (0,0);
+
+   foreach my $c (split(//,$structure)) {
+       if ($c eq '.') {
+          $table[$i]= -1;
+     } elsif ($c eq '(') {
+          $olist[$hx++]=$i;
+     } elsif ($c eq ')') {
+         my $j = $olist[--$hx];
+         die ("unbalanced brackets in make_pair_table") if ($hx<0);
+         $table[$i]=$j;
+         $table[$j]=$i;
+     }
+      $i++;
+   }
+   carp ("too few closed brackets in make_pair_table") if ($hx!=0);
+   return @table;
 }
 
 
@@ -430,15 +514,19 @@ A multiple sequence alignment in ClustalW format
 =item B<--method|-m>
 
 Method to compute pairwise ditances. Available options are 'dHn',
-'dHx', 'dBp', and 'SCI'. The first and second compute pairwise Hamming
-distances of sequences, where 'dHn' replaces gaps with 'N', whereas
-'dHx' removes all gap columns (is not yet implemented). 'dBp' folds
-RNA sequences into thir MFE structures and computes pairwise base pair
-distances. 'SCI' computes the distance as 1-log(SCI), based on a
-truncated strucure conservation index of two sequences. The latter,
-however, is not a metric and therefore often results in negative
-branch lengths in Neighbor Joining trees. Use with caution. [default:
-'dHn']
+'dHx', 'dBp', 'dBc, 'dHB', and 'SCI'. The first and second compute
+pairwise Hamming distances of sequences, where 'dHn' replaces gaps
+with 'N', whereas 'dHx' removes all gap columns (not yet
+implemented). 'dBp' folds RNA sequences into their MFE structures and
+computes pairwise base pair distances. 'dBc' computes base pair
+distances on constraint-folded RNA sequences. Here, the default is to
+use the consensus structure of the underlying alignment as a
+constraint, however, an alternative constraint structure can be
+provided via the B<--constraint> option. 'SCI' computes the distance
+as 1-log(SCI), based on a truncated strucure conservation index of two
+sequences. The latter, however, is not a metric and therefore often
+results in negative branch lengths in Neighbor Joining trees. Use with
+caution. [default: 'dHn']
 
 =item B<--noribosum>
 
