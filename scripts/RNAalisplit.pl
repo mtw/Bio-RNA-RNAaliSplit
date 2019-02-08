@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-02-07 16:52:45 mtw>
+# Last changed Time-stamp: <2019-02-08 14:54:04 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -79,6 +79,9 @@ unless (-f $alifile){
   warn "Could not find input file provided via --aln|-a option";
   pod2usage(-verbose => 0);
 }
+
+croak "ERROR: method dBc must be selected when using constraints, exiting ..."
+  if (defined $constraint && $method ne "dBc");
 
 if($method eq "dBp" || $method eq "dHB"){
   $fi = fold_input_alignment($alifile); # for later computation of BP dist
@@ -415,9 +418,14 @@ sub fold_input_alignment_constrained {
 				     );
   my $input_aln = $input_AlignIO->next_aln;
   foreach my $element ($input_aln->each_seq) {
+  
     my @gappos = ();
     my $cons=$constr;
     my $gseq = $element->seq;
+    if (length($constraint) != length($gseq)){
+      print STDERR "ERROR: constraint length does not match alignment length ...\n$constraint \n $gseq";
+      croak();
+    }
     print "\n>begin\n$gseq<\n";
     for (my $p=0; $p<length($gseq);$p++) {
       # remove non-compatible pairs as well as pairs to a gap position
@@ -434,8 +442,9 @@ sub fold_input_alignment_constrained {
       }
     }
     print STDERR "$cons\n$gseq\n";
-   # print STDERR length($seq), length($cons), "\n";
+    # print STDERR length($seq), length($cons), "\n";
     $cons =~ s/x//g;
+    my $seq = $gseq;
     $seq  =~ s/-//g;
     print STDERR "$cons\n$seq\n";
     print join ",", @gappos,"\n---\n";
