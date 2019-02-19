@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-02-08 14:54:04 mtw>
+# Last changed Time-stamp: <2019-02-19 15:30:49 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -22,14 +22,14 @@ use Path::Class;
 use File::Basename;
 use Carp;
 use RNA;
-#use diagnostics;
+use diagnostics;
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 #^^^^^^^^^^ Variables ^^^^^^^^^^^#
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 
 my $format = "ClustalW";
-my $method = "dHn"; # SCI | dHn | dHx | dBp | dHB
+my $method = "dHn"; # SCI | dHn | dHx | dBp | dBc | dHB
 my $rscape_stat = "GTp";
 my $outdir = "as";
 my $verbose = undef;
@@ -41,7 +41,7 @@ my $scaleB = 1.;
 my $ribosum = 1;
 my $constraint=undef;
 my $show_version = 0;
-my %foldme = (); # HoH of folded input sequences for dBp computation
+my %foldme = (); # HoH of folded input sequences for dBp/dBc computation
 
 my %pair = ("AU" => 5,
 	    "GC" => 1,
@@ -100,7 +100,7 @@ while ($done != 1){
   print STDERR "Computing round $lround ...\n";
   alisplit($alifile,$odirname);
   $round++;
-  $done = 1; 
+  $done = 1;
   #TODO sort output by RNAz SVM prob and re-run with the first few as input alignments 
 }
 
@@ -255,14 +255,21 @@ sub make_distance_matrix {
     elsif ($m eq "dHx") { # hamming dist with all gap columns removed
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHx;
     }
-    elsif ($m eq "dBp") { # base pairdistance
+    elsif ($m eq "dBp") { # base pair distance
       carp "ERROR [$this_function] sequence \'display_id\' not found in input alignment"
 	unless (exists $$fi{$id1} && exists $$fi{$id2});
       my $gss1 = $$fi{$id1}->{gss};
       my $gss2 = $$fi{$id2}->{gss};
       my $dBp = RNA::bp_distance($gss1,$gss2);
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dBp;
-
+    }
+    elsif ($m eq "dBc") { # constrained base pair distance
+      carp "ERROR [$this_function] sequence \'display_id\' not found in input alignment"
+	unless (exists $$fi{$id1} && exists $$fi{$id2});
+      my $gss1 = $$fi{$id1}->{gss};
+      my $gss2 = $$fi{$id2}->{gss};
+      my $dBp = RNA::bp_distance($gss1,$gss2);
+      $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dBp;
     }
     elsif($m eq "dHB") { # combined hamming + basepair distance
       carp "ERROR [$this_function] sequence \'display_id\' not found in input alignment"
@@ -273,7 +280,7 @@ sub make_distance_matrix {
       my $dHB = $scaleH*$dHn + $scaleB*$dBp;
       $D[$dim*($i-1)+($j-1)] =  $D[$dim*($j-1)+($i-1)] = $dHB;
     }
-    else {croak "Method $method not available ..please use SCI|dHn|dHx|dBp|dHB"}
+    else {croak "Method $method not available ..please use any of SCI|dHn|dHx|dBp|dBc|dHB"}
   }
 
   # write matrix to file
@@ -282,6 +289,7 @@ sub make_distance_matrix {
   elsif ($m eq "dHn"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHn",$ASO,$verbose)}
   elsif ($m eq "dHx"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHx",$ASO,$verbose)}
   elsif ($m eq "dBp"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBp",$ASO,$verbose)}
+  elsif ($m eq "dBc"){$Dfile = dump_matrix(\@D,$dim,1,1,"dBc",$ASO,$verbose)}
   elsif ($m eq "dHB"){$Dfile = dump_matrix(\@D,$dim,1,1,"dHB",$ASO,$verbose)}
   else { croak "Method $m not available ..please use SCI|dHn|dHx|dBp|dHB"}
 
@@ -307,6 +315,7 @@ sub dump_matrix {
   elsif($what eq "dHn"){$info="> H (Hamming distance with gap Ns)"}
   elsif($what eq "dHx"){$info="> H (Hamming distance with gaps removed)"}
   elsif($what eq "dBp"){$info="> B (Base pair distance)"}
+  elsif($what eq "dBc"){$info="> B (Base pair distance with constraints)"}
   else{$info="> H (unknown)"}
 
   if (defined $ad){ # print lower triangle matrix input for AanalyseDists
@@ -379,7 +388,7 @@ sub fold_input_alignment {
     my @gappos = ();
     my $gseq = $element->seq;
     for (my $i=0;$i<length($gseq);$i++){
-      push @gappos, $i if (substr($gseq,$i,1) eq "-"); # keep gap positions
+      push @gappos, $i if (substr($gseq,$i,1) eq "-"); # store gap positions
     }
     my $seq = $gseq;
     $seq =~ s/-//g; # get gap-free sequence
@@ -405,7 +414,6 @@ sub fold_input_alignment {
       croak "ERROR: duplicate sequence identifier in input: ".$element->display_id;
     }
   }
-  die;
   return \%foldin;
 }
 
@@ -418,15 +426,16 @@ sub fold_input_alignment_constrained {
 				     );
   my $input_aln = $input_AlignIO->next_aln;
   foreach my $element ($input_aln->each_seq) {
-  
     my @gappos = ();
     my $cons=$constr;
     my $gseq = $element->seq;
+    my $id = $element->display_id;
     if (length($constraint) != length($gseq)){
       print STDERR "ERROR: constraint length does not match alignment length ...\n$constraint \n $gseq";
       croak();
     }
-    print "\n>begin\n$gseq<\n";
+    print STDERR "\n>$id\n";
+    print STDERR "$gseq\n";
     for (my $p=0; $p<length($gseq);$p++) {
       # remove non-compatible pairs as well as pairs to a gap position
       my $c = substr($gseq,$p,1);
@@ -440,20 +449,47 @@ sub fold_input_alignment_constrained {
 	substr($cons,$p,1) = substr($cons,$pt[$p],1) = '.'
 	  unless exists $pair{$c . substr($gseq,$pt[$p],1)};
       }
-    }
+    } # end for
+
     print STDERR "$cons\n$gseq\n";
     # print STDERR length($seq), length($cons), "\n";
     $cons =~ s/x//g;
     my $seq = $gseq;
     $seq  =~ s/-//g;
     print STDERR "$cons\n$seq\n";
-    print join ",", @gappos,"\n---\n";
-    # now do constraint folding
 
-    # re-insert gaps into seq and constraint-folded strcuture
+    # do constraint folding
+    $RNA::fold_constrained = 1;
+    my ($css,$cmfe) =  RNA::fold($seq, $cons);
+    print STDERR "$css\t$cmfe\n";
+    $RNA::fold_constrained = 0;
+
+    # re-insert gaps into constraint-folded strcuture
+    my $gcss = $css;
+    for (my $i=0;$i<=$#gappos;$i++){
+      my $gaps_inserted = 0;
+      substr($gcss,$gappos[$i]+$gaps_inserted,0) = ".";
+      $gaps_inserted++;
+    }
+    print "$gcss\n";
+    print STDERR join ",", @gappos,"\n";
+
+    unless (exists($foldin{$element->display_id})){
+      $foldin{$element->display_id} = {
+				       gseq => $gseq,
+				       seq => $seq,
+				       ss => $css,
+				       gss =>$gcss,
+				       mfe => $cmfe,
+				      }
+    }
+    else{
+      croak "ERROR: duplicate sequence identifier in input: ".$element->display_id;
+    }
+    print STDERR Dumper( $foldin{$element->display_id} );
+    print STDERR "---\n";
   }
-
-  die;
+  return \%foldin;
 }
 
 sub make_pair_table {
@@ -519,6 +555,11 @@ from pairwise distances. It can be visualized e.g. with SplitsTree.
 =item B<--aln|-a>
 
 A multiple sequence alignment in ClustalW format
+
+=item B<--constraint|-c>
+
+Constraint structure, overriding the consensus structure of the
+underlying alignment in case  B<--method|-m dBc> is selected.
 
 =item B<--method|-m>
 
