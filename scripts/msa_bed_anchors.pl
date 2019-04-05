@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-01-07 00:40:29 mtw>
+# Last changed Time-stamp: <2019-04-05 22:58:09 mtw>
 # -*-CPerl-*-
 #
 # Create BED6 anchors for columns in a multiple sequence alignment
@@ -10,7 +10,7 @@
 # usage: msa_bed_anchors.pl -a myaln.aln -c 20,133,176
 #
 
-use version; our $VERSION = qv('0.09');
+use version; our $VERSION = qv('0.10');
 use strict;
 use warnings;
 use Bio::AlignIO;
@@ -36,9 +36,9 @@ Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"     => \$alifile,
 					   "columns|c=s" => \$columns,
 					   "version"     => sub{$show_version = 1},
-                                           "man"         => sub{pod2usage(-verbose => 2)},
-                                           "help|h"      => sub{pod2usage(1)}
-                                           );
+					   "man"         => sub{pod2usage(-verbose => 2)},
+					   "help|h"      => sub{pod2usage(1)}
+					   );
 
 if ($show_version == 1){
   print "msa_bed_anchors.pl $VERSION\n";
@@ -149,6 +149,7 @@ Show msa_bed_anchors.pl version and exit
 
 =head1 AUTHOR
 
-Michael T. Wolfinger E<lt>michael@wolfinger.euE<gt> and E<lt>michael.wolfinger@univie.ac.atE<gt>
+Michael T. Wolfinger E<lt>michael@wolfinger.euE<gt> and
+E<lt>michael.wolfinger@univie.ac.atE<gt>
 
 =cut

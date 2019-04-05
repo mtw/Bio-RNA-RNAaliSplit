@@ -1,4 +1,4 @@
-Bio-RNA-RNAaliSplit 0.09
+# Bio-RNA-RNAaliSplit 0.10
 
 Bio::RNA::RNAaliSplit is a distribution of Perl modules for splitting
 and deconvoluting structural RNA multiple sequence alignments
@@ -13,7 +13,7 @@ This distribution is shipped with a set of executables within the
 and performs the deconvolution. The eval_alignment.pl executable is a
 lightweight evaluator for structural alignments of RNA.
 
-THIRD PARTY DEPENDENCIES
+## THIRD PARTY DEPENDENCIES
 
 This module depends heavily on third party RNA bioinformatics software.
 
@@ -33,16 +33,16 @@ Be sure to have all dependencies up and running on your system (and
 available to the Perl interpreter) priot to installation of
 Bio::RNA::RNAaliSplit.
 
-INSTALLATION
+## INSTALLATION
 
 To install this module, run the following commands:
 
-	perl Makefile.PL
-	make
-	make test
-	make install
+>	perl Makefile.PL
+>	make
+>	make test
+>	make install
 
-SUPPORT AND DOCUMENTATION
+## SUPPORT AND DOCUMENTATION
 
 After installing, you can find documentation for this module with the
 perldoc command.
@@ -57,7 +57,7 @@ You can also look for information at:
     RT, CPAN's request tracker (report bugs here)
         http://rt.cpan.org/NoAuth/Bugs.html?Dist=Bio-RNA-RNAaliSplit
 
-LICENSE AND COPYRIGHT
+## LICENSE AND COPYRIGHT
 
 Copyright (C) 2017-2019 Michael T. Wolfinger
 
@@ -73,5 +73,4 @@ Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public
 License along with this program.  If not, see
-L<http://www.gnu.org/licenses/>.
-
+http://www.gnu.org/licenses/.

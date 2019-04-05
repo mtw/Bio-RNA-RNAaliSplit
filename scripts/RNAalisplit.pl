@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-02-19 15:30:49 mtw>
+# Last changed Time-stamp: <2019-04-05 22:54:35 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -58,7 +58,7 @@ my %pair = ("AU" => 5,
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"      => \$alifile,
 					   "constraint|c=s" => \$constraint,
-                                           "method|m=s"   => \$method,
+					   "method|m=s"   => \$method,
 					   "noribosum"    => sub{$ribosum=0},
 					   "out|o=s"      => \$outdir,
 					   "rscapestat=s" => \$rscape_stat,
@@ -66,9 +66,9 @@ pod2usage(-verbose => 1) unless GetOptions("aln|a=s"      => \$alifile,
 					   "scaleB"       => \$scaleB,
 					   "verbose|v"    => sub{$verbose = 1},
 					   "version"      => sub{$show_version = 1},
-                                           "man"          => sub{pod2usage(-verbose => 2)},
-                                           "help|h"       => sub{pod2usage(1)}
-                                           );
+					   "man"          => sub{pod2usage(-verbose => 2)},
+					   "help|h"       => sub{pod2usage(1)}
+					   );
 
 if ($show_version == 1){
   print "RNAalisplit $VERSION\n";
@@ -101,7 +101,7 @@ while ($done != 1){
   alisplit($alifile,$odirname);
   $round++;
   $done = 1;
-  #TODO sort output by RNAz SVM prob and re-run with the first few as input alignments 
+  #TODO sort output by RNAz SVM prob and re-run with the first few as input alignments
 }
 
 
@@ -442,7 +442,7 @@ sub fold_input_alignment_constrained {
       if ($c eq '-') {
 	push @gappos, $p;
 	substr($cons,$p,1) = 'x'; # mark for removal
-	substr($cons,$pt[$p],1) = '.' 
+	substr($cons,$pt[$p],1) = '.'
 	  if $pt[$p]>0  && substr($cons,$pt[$p],1) ne 'x';   # open pair
       }
       elsif ($pt[$p]>$p) {
@@ -501,14 +501,14 @@ sub make_pair_table {
 
    foreach my $c (split(//,$structure)) {
        if ($c eq '.') {
-          $table[$i]= -1;
+	  $table[$i]= -1;
      } elsif ($c eq '(') {
-          $olist[$hx++]=$i;
+	  $olist[$hx++]=$i;
      } elsif ($c eq ')') {
-         my $j = $olist[--$hx];
-         die ("unbalanced brackets in make_pair_table") if ($hx<0);
-         $table[$i]=$j;
-         $table[$j]=$i;
+	 my $j = $olist[--$hx];
+	 die ("unbalanced brackets in make_pair_table") if ($hx<0);
+	 $table[$i]=$j;
+	 $table[$j]=$i;
      }
       $i++;
    }
