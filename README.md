@@ -30,17 +30,17 @@ significant covariation in base pairs. Download R-scape from
 http://www.eddylab.org/R-scape .
 
 Be sure to have all dependencies up and running on your system (and
-available to the Perl interpreter) priot to installation of
+available to the Perl interpreter) prior to installation of
 Bio::RNA::RNAaliSplit.
 
 ## INSTALLATION
 
 To install this module, run the following commands:
 
->	perl Makefile.PL
->	make
->	make test
->	make install
+	perl Makefile.PL
+	make
+	make test
+	make install
 
 ## SUPPORT AND DOCUMENTATION
 
