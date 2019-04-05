@@ -59,7 +59,7 @@ You can also look for information at:
 
 ## LICENSE AND COPYRIGHT
 
-Copyright (C) 2017-2019 Michael T. Wolfinger <michael@wolfinger.eu>
+Copyright (C) 2017-2019 Michael T. Wolfinger (<michael@wolfinger.eu>)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public
