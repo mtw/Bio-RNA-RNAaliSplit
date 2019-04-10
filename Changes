@@ -1,5 +1,11 @@
 Revision history for Bio::RNA::RNAaliSplit
 
+0.11
+	- added a separate Subtypes modules
+	- added AliHandler.pm
+	- added AliFeature.pm
+	
+
 0.10	Fri Apr 05 2019
 	- add constrained base pair distance -m dBc
 
