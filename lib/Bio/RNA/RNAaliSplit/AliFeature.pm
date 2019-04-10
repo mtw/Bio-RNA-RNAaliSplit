@@ -11,6 +11,7 @@ use namespace::autoclean;
 use version; our $VERSION = qv('0.11');
 use diagnostics;
 use Data::Dumper;
+use Carp;
 
 extends 'Bio::RNA::RNAaliSplit::AliHandler';
 
@@ -21,12 +22,21 @@ has 'sop' => ( # sum of pairs score
 	      init_arg => undef,
 	     );
 
-has 'cols' => ( # column score
-	       is => 'rw',
-	       isa => 'Arrayref',
-	       predicate => 'has_sCOL',
-	       init_arg => undef,
+has '_csp' => ( # column sequence positions
+	      is => 'ro', # read-only
+	      isa => 'ArrayRef',
+	      predicate => 'has_sCSP',
+	      init_arg => undef,
+	      writer => '_cspwriter', # private writer
 	      );
+
+has 'csp_hash' => (
+		   is => 'ro',
+		   isa => 'HashRef',
+		   predicate => 'hash_csp_hash',
+		   init_arg => undef,
+		   writer => '_csp_hash_writer', # private writer 4 ro attribute
+		  );
 
 with 'FileDirUtil';
 
@@ -39,11 +49,74 @@ sub BUILD {
 		    -format => $self->format,
 		    -displayname_flat => 1} ); # discard position in sequence IDs
   $self->next_aln($self->alignment->next_aln);
+  $self->next_aln->set_displayname_safe();
+  $self->_get_alen();
+  $self->_get_nrseq();
   # ev past odir stuff here
   $self->set_ifilebn;
 
   # compute sum of pairs score
   #$self->sop();
-  # compute column score
-  #$self->cols();
+
+  # compute sequence position for each column
+  $self->_get_column_sequence_positions();
+  # compute CSP hash
+  $self->_csp_hash();
 }
+
+sub _get_column_sequence_positions {
+  my $self = shift;
+  my @loclist = ();
+  foreach my $i( 1..$self->nrseq ) {
+    my @ll=();
+    my $seq = $self->next_aln->get_seq_by_pos($i);
+    # print $seq->seq."\n";
+    $ll[0] =  $self->alen;
+    for (my $j=1;$j<=$self->alen;$j++){
+      my $pos=0; #default
+      my $loc = $seq->location_from_column($j);
+      if($loc->location_type() eq 'EXACT'){
+	$pos = $loc->to_FTstring();
+      }
+      elsif ($loc->location_type() eq 'IN-BETWEEN'){
+	$pos = 0;
+      }
+      else { croak Dumper($loc); }
+      # print Dumper($loc);
+      $ll[$j]=$pos;
+    } # end for
+    push @loclist, \@ll;
+  } # end foreach
+  $self->_cspwriter(\@loclist);
+}
+
+sub _csp_hash {
+  my $self = shift;
+  my %csp = ();
+  for (my $j=1;$j<=$self->alen;$j++) { # loop over columns
+    my $pstring;
+    for (my $i=0;$i<$self->nrseq;$i++){ # loop over sequences
+      $pstring .= eval(${$self->_csp}[$i]->[$j]).",";
+    }
+    #print ">> $pstring <<\n";
+    $csp{$pstring}=1;
+  }
+  $self->_csp_hash_writer(\%csp);
+}
+
+
+sub _get_alen {
+  my $self = shift;
+  $self->alen($self->next_aln->length());
+}
+
+sub _get_nrseq {
+  my $self = shift;
+  $self->nrseq($self->next_aln->num_sequences());
+}
+
+no Moose;
+
+1;
+
+__END__

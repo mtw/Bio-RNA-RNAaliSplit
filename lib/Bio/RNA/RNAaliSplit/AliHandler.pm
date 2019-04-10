@@ -34,6 +34,19 @@ has 'next_aln' => (
                    init_arg => undef,
                   );
 
+has 'alen' => ( #alignment length
+	       is => 'rw',
+	       isa => 'Int',
+	       predicate => 'has_alen',
+	       init_arg => undef,
+	      );
+
+has 'nrseq' => ( # number of sequences in alignment
+		is => 'rw',
+		isa => 'Int',
+		predicate => 'has_nrseq',
+		init_arg => undef,
+	       );
 no Moose;
 1;
 
