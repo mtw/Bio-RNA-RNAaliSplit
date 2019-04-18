@@ -75,13 +75,20 @@ sub _get_column_sequence_positions {
     for (my $j=1;$j<=$self->alen;$j++){
       my $pos=0; #default
       my $loc = $seq->location_from_column($j);
-      if($loc->location_type() eq 'EXACT'){
-	$pos = $loc->to_FTstring();
+      if (defined ($loc)){
+	if($loc->location_type() eq 'EXACT'){
+	  $pos = $loc->to_FTstring();
+	}
+	elsif ($loc->location_type() eq 'IN-BETWEEN'){
+	  $pos = 0;
+	}
+	else { croak "ERROR: this should not happen\n".Dumper($loc); }
       }
-      elsif ($loc->location_type() eq 'IN-BETWEEN'){
-	$pos = 0;
+      else {
+	  $pos = 0; # TODO check me
       }
-      else { croak Dumper($loc); }
+
+	
       # print Dumper($loc);
       $ll[$j]=$pos;
     } # end for
