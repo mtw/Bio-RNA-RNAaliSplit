@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-10 09:56:57 mtw>
+# Last changed Time-stamp: <2019-04-19 09:49:38 mtw>
 #
 #  Derive features of an alignment, in particular scores to compare
 #  different alignments of the same sequences
@@ -56,13 +56,18 @@ sub BUILD {
   $self->set_ifilebn;
 
   # compute sum of pairs score
-  #$self->sop();
+  $self->compute_sop();
 
   # compute sequence position for each column
   $self->_get_column_sequence_positions();
   # compute CSP hash
   $self->_csp_hash();
 }
+
+sub compute_sop {
+  my $self = shift;
+}
+
 
 sub _get_column_sequence_positions {
   my $self = shift;
@@ -87,8 +92,6 @@ sub _get_column_sequence_positions {
       else {
 	  $pos = 0; # TODO check me
       }
-
-	
       # print Dumper($loc);
       $ll[$j]=$pos;
     } # end for
