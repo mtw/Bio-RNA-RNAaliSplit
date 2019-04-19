@@ -52,20 +52,45 @@ sub BUILD {
   $self->next_aln->set_displayname_safe();
   $self->_get_alen();
   $self->_get_nrseq();
-  # ev past odir stuff here
   $self->set_ifilebn;
 
   # compute sum of pairs score
   $self->compute_sop();
-
   # compute sequence position for each column
   $self->_get_column_sequence_positions();
   # compute CSP hash
   $self->_csp_hash();
 }
 
+# Compute Sum of Pairs scoring for an alignment
 sub compute_sop {
   my $self = shift;
+  # print "### in ccompute_sop###\n";
+  my @alignment=();
+  my $sp=0;
+  for (my $i=1;$i<=$self->nrseq;$i++){
+    push @alignment, $self->next_aln->get_seq_by_pos($i)->seq;
+  }
+  # print Dumper (\@alignment);
+
+  for (my $c=0;$c<eval($self->alen);$c++){ # loop over alignment columns
+    my $colscore=0;
+    # print "$c\n";
+
+    for (my $i=0;$i<eval($self->nrseq);$i++){
+      for (my $j=$i+1;$j<eval($self->nrseq);$j++){
+ 	my $ci = substr($alignment[$i],$c,1);
+	my $cj = substr($alignment[$j],$c,1);
+	if (1) { # if ($self->distancemeasure eq "e"){ # edit distance
+ 	  if ($ci ne $cj) {$colscore += 1}
+ 	}
+ 	# print " > $ci$i $cj$j $colscore <\n";
+      } # end for j
+    } # end for i
+    # print " > ---------- <\n";
+    $sp += $colscore;
+  } # end for c
+  $self->sop($sp);
 }
 
 
