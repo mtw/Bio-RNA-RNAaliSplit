@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-09 14:39:27 mtw>
+# Last changed Time-stamp: <2019-04-24 00:49:39 mtw>
 #
 # This a base class for handling alignment files in different formats
 
@@ -47,6 +47,17 @@ has 'nrseq' => ( # number of sequences in alignment
 		predicate => 'has_nrseq',
 		init_arg => undef,
 	       );
+
+sub _get_alen {
+  my $self = shift;
+  $self->alen($self->next_aln->length());
+}
+
+sub _get_nrseq {
+  my $self = shift;
+  $self->nrseq($self->next_aln->num_sequences());
+}
+
 no Moose;
 1;
 
