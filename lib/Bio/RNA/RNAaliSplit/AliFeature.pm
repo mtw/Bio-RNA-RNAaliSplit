@@ -55,7 +55,7 @@ sub BUILD {
   $self->set_ifilebn;
 
   # compute sum of pairs score
-  $self->compute_sop();
+  #$self->compute_sop();
   # compute sequence position for each column
   $self->_get_column_sequence_positions();
   # compute CSP hash
