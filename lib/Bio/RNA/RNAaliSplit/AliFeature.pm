@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-19 09:49:38 mtw>
+# Last changed Time-stamp: <2019-04-24 00:47:47 mtw>
 #
 #  Derive features of an alignment, in particular scores to compare
 #  different alignments of the same sequences
@@ -141,15 +141,15 @@ sub _csp_hash {
 }
 
 
-sub _get_alen {
-  my $self = shift;
-  $self->alen($self->next_aln->length());
-}
+#sub _get_alen {
+#  my $self = shift;
+#  $self->alen($self->next_aln->length());
+#}
 
-sub _get_nrseq {
-  my $self = shift;
-  $self->nrseq($self->next_aln->num_sequences());
-}
+#sub _get_nrseq {
+#  my $self = shift;
+#  $self->nrseq($self->next_aln->num_sequences());
+#}
 
 no Moose;
 
