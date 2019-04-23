@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-04-05 22:54:35 mtw>
+# Last changed Time-stamp: <2019-04-24 01:07:23 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -28,7 +28,6 @@ use diagnostics;
 #^^^^^^^^^^ Variables ^^^^^^^^^^^#
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 
-my $format = "ClustalW";
 my $method = "dHn"; # SCI | dHn | dHx | dBp | dBc | dHB
 my $rscape_stat = "GTp";
 my $outdir = "as";
@@ -54,7 +53,6 @@ my %pair = ("AU" => 5,
 	    "UG" => 4,
 	    "AT" => 5,
 	    "TA" => 6);
-
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"      => \$alifile,
@@ -114,10 +112,11 @@ while ($done != 1){
 sub alisplit {
   my ($alnfile,$odirn) = @_;
   my ($what,$alifold,$rscape);
+  my $format = Bio::AlignIO->_guess_format($alnfile);
+  print STDERR "Guess input format $format\n";
   my $AlignSplitObject = Bio::RNA::RNAaliSplit->new(ifile => $alnfile,
 						    format => $format,
-						    odir => $odirn,
-						    dump => 1);
+						    odir => $odirn);
   #print Dumper($AlignSplitObject);
   my $dim = $AlignSplitObject->next_aln->num_sequences;
   my $stkfile = $AlignSplitObject->alignment_stk;
@@ -136,12 +135,13 @@ sub alisplit {
   }
 
   # run RNAalifold for the input alignment
-  $alifold = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
+  $alifold = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $AlignSplitObject->alignment_aln,
 							odir => $AlignSplitObject->odir,
+							format => 'C',
 							ribosum => $ribosum);
 
   # run RNAz for the input alignment
-  $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $alnfile,
+  $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $AlignSplitObject->alignment_aln,
 					       odir => $AlignSplitObject->odir);
 
   # run R-scape for the input alignment
@@ -250,12 +250,6 @@ sub make_distance_matrix {
     $dHx = $pw_aso->hammingdistX;
     my $id1 = $pw_aso->next_aln->get_seq_by_pos(1)->display_id;
     my $id2 = $pw_aso->next_aln->get_seq_by_pos(2)->display_id;
-   # my $seq1 = $so1->seq;
-   # my $seq2 = $so2->seq;
-   # my ($ss1,$mfe1) = RNA::fold($seq1);
-   # my ($ss2,$mfe2) = RNA::fold($seq2);
-    #print ">> \$seq1: $seq1\n          $ss1\n>> \$seq2: $seq2\n          $ss2\n\n";
- #   print Dumper($so1);
 
     if ($m eq "SCI"){
       # distance = -log( [normalized] pairwise SCI)
