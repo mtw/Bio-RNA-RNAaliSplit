@@ -7,7 +7,7 @@
 # NB: Display ID handling in Bio::AlignIO is broken for Stockholm
 # format. Use ClustalW format instead !!!
 
-use version; our $VERSION = qv('0.10');
+use version; our $VERSION = qv('0.11');
 use strict;
 use warnings;
 use Bio::RNA::RNAaliSplit;
@@ -41,6 +41,7 @@ my $scaleB = 1.;
 my $ribosum = 1;
 my $constraint=undef;
 my $show_version = 0;
+my $do_rscape = 1;
 my %foldme = (); # HoH of folded input sequences for dBp/dBc computation
 
 my %pair = ("AU" => 5,
@@ -60,6 +61,7 @@ pod2usage(-verbose => 1) unless GetOptions("aln|a=s"      => \$alifile,
 					   "constraint|c=s" => \$constraint,
 					   "method|m=s"   => \$method,
 					   "noribosum"    => sub{$ribosum=0},
+					   "norscape"     => sub{$do_rscape=0},
 					   "out|o=s"      => \$outdir,
 					   "rscapestat=s" => \$rscape_stat,
 					   "scaleH"       => \$scaleH,
@@ -126,7 +128,12 @@ sub alisplit {
   my $sd = Bio::RNA::RNAaliSplit::WrapAnalyseDists->new(ifile => $dmfile,
 							odir => $AlignSplitObject->odir);
   print STDERR "Identified ".$sd->count." splits\n";
-  print join "\t", ("#hint","RNAz prob","z-score","SCI","seqs","statistic","SSCBP","consensus structure","alignment"), "\n";
+  if ($do_rscape){
+    print join "\t", ("#hint","RNAz prob","z-score","SCI","seqs","statistic","SSCBP","consensus structure","alignment"), "\n";
+  }
+  else {
+    print join "\t", ("#hint","RNAz prob","z-score","SCI","seqs","consensus structure","alignment"), "\n";
+  }
 
   # run RNAalifold for the input alignment
   $alifold = Bio::RNA::RNAaliSplit::WrapRNAalifold->new(ifile => $alnfile,
@@ -138,14 +145,20 @@ sub alisplit {
 					       odir => $AlignSplitObject->odir);
 
   # run R-scape for the input alignment
-  $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifold->alignment_stk, # use RNAalifold-generated stk
-						   odir => $AlignSplitObject->odir,
-						   statistic => $rscape_stat,
-						   nofigures => 1);
-  $rscape->status == 0 ? $what = $rscape->TP : $what = "n/a";
+  if ($do_rscape){
+    $rscape = Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifold->alignment_stk, # use RNAalifold-generated stk
+						     odir => $AlignSplitObject->odir,
+						     statistic => $rscape_stat,
+						     nofigures => 1);
+    $rscape->status == 0 ? $what = $rscape->TP : $what = "n/a";
 
-  print join "\t", "-",$rnaz->P,$rnaz->z,$alifold->sci,$dim,$rscape->statistic,$what,
-    $alifold->consensus_struc,$alnfile."\n";
+    print join "\t", "-",$rnaz->P,$rnaz->z,$alifold->sci,$dim,$rscape->statistic,$what,
+      $alifold->consensus_struc,$alnfile."\n";
+  }
+  else {
+    print join "\t", "-",$rnaz->P,$rnaz->z,$alifold->sci,$dim,
+      $alifold->consensus_struc,$alnfile."\n";
+  }
 
   # extract split sets and run RNAz/RNAalifold/R-scape on each of them
   my $splitnr=1;
@@ -176,22 +189,27 @@ sub evaluate_alignment {
 							 odir => $odir,
 							 ribosum => $ribosum);
   $cs = $alifoldo->consensus_struc;
-  $rscapeo =  Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifoldo->alignment_stk, # use RNAalifold-generated stk
-						     odir => $odir,
-						     statistic => $rscape_stat,
-						     nofigures => 1);
-  if ($rscapeo->status == 0){ # all OK
-    $what = $rscapeo->TP;
-  }
-  elsif ($rscapeo->status == 1){  # no significant basepairs
-    $what = "0:no_sign";
-  }
-  elsif ($rscapeo->status == 2){  # covariation scores are almost constant, no further analysis
-    $what = "0:no_data";
-  }
-  else { $what = "n/a" }
+  if ($do_rscape) {
+    $rscapeo =  Bio::RNA::RNAaliSplit::WrapRscape->new(ifile => $alifoldo->alignment_stk, # use RNAalifold-generated stk
+						       odir => $odir,
+						       statistic => $rscape_stat,
+						       nofigures => 1);
+    if ($rscapeo->status == 0){ # all OK
+      $what = $rscapeo->TP;
+    }
+    elsif ($rscapeo->status == 1){  # no significant basepairs
+      $what = "0:no_sign";
+    }
+    elsif ($rscapeo->status == 2){  # covariation scores are almost constant, no further analysis
+      $what = "0:no_data";
+    }
+    else { $what = "n/a" }
 
-  print join "\t",($hint,$rnazo->P,$rnazo->z,$alifoldo->sci,$count,$rscapeo->statistic,$what,$cs,$aln), "\n";
+    print join "\t",($hint,$rnazo->P,$rnazo->z,$alifoldo->sci,$count,$rscapeo->statistic,$what,$cs,$aln), "\n";
+  }
+  else {
+    print join "\t",($hint,$rnazo->P,$rnazo->z,$alifoldo->sci,$count,$cs,$aln), "\n";
+  }
 }
 
 sub make_distance_matrix {
@@ -582,6 +600,10 @@ caution. [default: 'dHn']
 
 Turn off ribosum scoring for RNAalifold computation. Default: ribosum
 scoring on
+
+=item B<--norscape>
+
+Turn off R-scape calculation. Default: R-scape on
 
 =item B<--rscapestat>
 
