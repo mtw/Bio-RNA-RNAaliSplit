@@ -1,9 +1,9 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-05 22:36:35 mtw>
+# Last changed Time-stamp: <2019-04-23 22:31:28 mtw>
 
 package Bio::RNA::RNAaliSplit::Roles;
 
-use version; our $VERSION = qv('0.10');
+use version; our $VERSION = qv('0.11');
 use Moose::Util::TypeConstraints;
 use Moose::Role;
 use Path::Class::Dir;
