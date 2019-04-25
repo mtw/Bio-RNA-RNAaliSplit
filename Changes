@@ -6,6 +6,7 @@ Revision history for Bio::RNA::RNAaliSplit
 	- add AliHandler.pm
 	- add AliFeature.pm
 	- refactor RNAaliSplit.pm to make use of the above classes
+	- refactor and update unit tests
 
 0.10	Fri Apr 05 2019
 	- add constrained base pair distance -m dBc

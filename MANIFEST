@@ -20,6 +20,9 @@ share/aln/RF00050.part.stk
 t/00-load.t
 t/01-prereq.t
 t/02-version.t
+t/05-Roles.t
+t/07-AliHandler.t
+t/10-RNAaliSplit.t
 t/11-WrapRNAalifold.t
 t/12-WrapRscape.t
 t/20-executables.t
