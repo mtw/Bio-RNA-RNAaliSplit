@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-24 00:56:59 mtw>
+# Last changed Time-stamp: <2019-08-25 20:54:13 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
@@ -52,7 +52,6 @@ has 'hammingdistX' => (
 
 
 with 'FileDirUtil';
-with 'Bio::RNA::RNAaliSplit::Roles';
 
 sub BUILD {
     my $self = shift;
@@ -67,8 +66,8 @@ sub BUILD {
     $self->_get_alen();
     $self->_get_nrseq();
     unless($self->has_odir){
-      unless($self->has_dirnam){$self->dirnam("as")}
-      $self->odir( [$self->ifile->dir,$self->dirnam] );
+      my $odir_name = "as";
+      $self->odir( [$self->ifile->dir,$odir_name] );
     }
     my @created = make_path($self->odir, {error => \my $err});
     confess "ERROR [$this_function] could not create output directory $self->odir"
@@ -113,7 +112,7 @@ sub dump_subalignment {
   my $oodir = $self->odir->subdir($alipathsegment);
   mkdir($oodir);
 
-  # create info file 
+  # create info file
   my $oinfofile = file($oodir,$token.".info");
   open my $oinfo, ">", $oinfofile or die $!;
   foreach my $entry (@$what){
@@ -267,5 +266,3 @@ L<http://www.gnu.org/licenses/>.
 =cut
 
 1; # End of Bio::RNA::RNAaliSplit
-
-
