@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-08-25 21:20:28 mtw>
+# Last changed Time-stamp: <2019-08-25 19:51:47 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -160,8 +160,6 @@ has 'status' => (
 
 
 with 'FileDirUtil';
-with 'Bio::RNA::RNAaliSplit::Roles';
-
 
 sub BUILD {
   my $self = shift;
