@@ -1,10 +1,11 @@
 Revision history for Bio::RNA::RNAaliSplit
 
-0.11
+0.11	Mon Aug 26 2019
 	- optional R-scape processing in RNAalisplit.pl
-	- add a separate Subtypes modules
+	- add Subtypes.pm
 	- add AliHandler.pm
 	- add AliFeature.pm
+	- remove Roles.pm
 	- refactor RNAaliSplit.pm to make use of the above classes
 	- refactor and update unit tests
 
