@@ -2,7 +2,9 @@ Changes
 inc/File/ShareDir/Install.pm
 inc/Version/Compare.pm
 lib/Bio/RNA/RNAaliSplit.pm
-lib/Bio/RNA/RNAaliSplit/Roles.pm
+lib/Bio/RNA/RNAaliSplit/Subtypes.pm
+lib/Bio/RNA/RNAaliSplit/AliFeature.pm
+lib/Bio/RNA/RNAaliSplit/AliHandler.pm
 lib/Bio/RNA/RNAaliSplit/WrapAnalyseDists.pm
 lib/Bio/RNA/RNAaliSplit/WrapRNAalifold.pm
 lib/Bio/RNA/RNAaliSplit/WrapRNAz.pm
@@ -20,9 +22,6 @@ share/aln/RF00050.part.stk
 t/00-load.t
 t/01-prereq.t
 t/02-version.t
-t/05-Roles.t
-t/07-AliHandler.t
-t/10-RNAaliSplit.t
 t/11-WrapRNAalifold.t
 t/12-WrapRscape.t
 t/20-executables.t
