@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-23 22:31:57 mtw>
+# Last changed Time-stamp: <2019-08-25 21:19:37 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -98,7 +98,6 @@ has 'alignment_stk' => (
 		       );
 
 with 'FileDirUtil';
-with 'Bio::RNA::RNAaliSplit::Roles';
 
 sub BUILD {
   my $self = shift;
@@ -108,8 +107,8 @@ sub BUILD {
   $rnaalifold = can_run('RNAalifold') or
     croak "ERROR [$this_function] RNAalifold not found";
   unless($self->has_odir){
-    unless($self->has_dirnam){self->dirnam("as")}
-    $self->odir( [$self->ifile->dir,$self->dirnam] );
+    my $odir_name = "as";
+    $self->odir( [$self->ifile->dir,$odir_name] );
   }
   $oodir = $self->odir->subdir("alifold");
   my @created = make_path($oodir, {error => \my $err});
