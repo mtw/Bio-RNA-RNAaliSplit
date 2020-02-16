@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-08-25 20:54:13 mtw>
+# Last changed Time-stamp: <2020-02-16 05:27:46 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
@@ -13,8 +13,6 @@ use Moose::Util::TypeConstraints;
 use Path::Class;
 use File::Basename;
 use IPC::Cmd qw(can_run run);
-#use Bio::AlignIO;
-use Storable 'dclone';
 use File::Path qw(make_path);
 use diagnostics;
 
@@ -33,23 +31,6 @@ has 'alignment_stk' => (
 			predicate => 'has_stk_file',
 			init_arg => undef,
 		       );
-
-has 'hammingdistN' => (
-		       is => 'rw',
-		       isa => 'Num',
-		       default => '-1',
-		       predicate => 'has_hammingN',
-		       init_arg => undef,
-		      );
-
-has 'hammingdistX' => (
-		       is => 'rw',
-		       isa => 'Num',
-		       default => '-1',
-		       predicate => 'has_hammingX',
-		       init_arg => undef,
-		      );
-
 
 with 'FileDirUtil';
 
@@ -94,8 +75,6 @@ sub BUILD {
     $self->alignment_aln($ialnfile);
     $self->alignment_stk($istkfile);
     # end dump ifile
-
-    if ($self->next_aln->num_sequences == 2){ $self->_hamming() }
   }
 
 sub dump_subalignment {
@@ -159,36 +138,7 @@ sub dump_subalignment {
   return ( $oalifile_clustal,$oalifile_stockholm );
 }
 
-sub _hamming {
-  my $self = shift;
-  my $this_function = (caller(0))[3];
-  my $hamming = -1;
-  croak "ERROR [$this_function] cannot compute Hamming distance for $self->next_aln->num_sequences sequences"
-    if ($self->next_aln->num_sequences != 2);
-
-  my $aln =  $self->next_aln->select_noncont((1,2));
-
-  # compute Hamming distance of the aligned sequences, replacing gaps with Ns
-  my $alnN = dclone($aln);
-  croak("ERROR [$this_function] cannot replace gaps with Ns")
-    unless ($alnN->map_chars('-','N') == 1);
-  my $seq1 = $alnN->get_seq_by_pos(1)->seq;
-  my $seq2 = $alnN->get_seq_by_pos(2)->seq;
-  croak "ERROR [$this_function] sequence length differs"
-    unless(length($seq1)==length($seq2));
-  my $hammingN = ($seq1 ^ $seq2) =~ tr/\001-\255//;
-  $self->hammingdistN($hammingN);
-
-#  print $self->ifilebn,":\n";
-#  print ">>s1: $seq1\n";
-#  print ">>s2: $seq2\n";
-#  print "** dhN = ".$self->hammingdistN."\n";
-#  print "+++\n";
-}
-
 no Moose;
-
-
 
 =head1 NAME
 

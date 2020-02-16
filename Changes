@@ -1,5 +1,8 @@
 Revision history for Bio::RNA::RNAaliSplit
 
+0.12_01	
+	- migrate calculation of Hamming distance and SCI to AliFeature.pm
+
 0.11	Mon Aug 26 2019
 	- optional R-scape processing in RNAalisplit.pl
 	- add Subtypes.pm

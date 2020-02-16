@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-24 00:47:47 mtw>
+# Last changed Time-stamp: <2020-02-16 05:52:03 mtw>
 #
 #  Derive features of an alignment, in particular scores to compare
 #  different alignments of the same sequences
@@ -11,7 +11,9 @@ use namespace::autoclean;
 use version; our $VERSION = qv('0.11');
 use diagnostics;
 use Data::Dumper;
+use Storable 'dclone';
 use Carp;
+use RNA;
 
 extends 'Bio::RNA::RNAaliSplit::AliHandler';
 
@@ -38,6 +40,29 @@ has 'csp_hash' => (
 		   writer => '_csp_hash_writer', # private writer 4 ro attribute
 		  );
 
+has 'hammingdistN' => (
+		       is => 'rw',
+		       isa => 'Num',
+		       default => '-1',
+		       predicate => 'has_hammingN',
+		       init_arg => undef,
+		      );
+
+has 'hammingdistX' => (
+		       is => 'rw',
+		       isa => 'Num',
+		       default => '-1',
+		       predicate => 'has_hammingX',
+		       init_arg => undef,
+		      );
+
+has 'sci' => (
+              is => 'rw',
+              isa => 'Num',
+              init_arg => undef,
+              documentation => q(Structure conservation index),
+             );
+
 with 'FileDirUtil';
 
 sub BUILD {
@@ -53,6 +78,7 @@ sub BUILD {
   $self->_get_alen();
   $self->_get_nrseq();
   $self->set_ifilebn;
+  if ($self->nrseq == 2){ $self->_hamming() }
 
   # compute sum of pairs score
   #$self->compute_sop();
@@ -60,6 +86,7 @@ sub BUILD {
   $self->_get_column_sequence_positions();
   # compute CSP hash
   $self->_csp_hash();
+	$self->_compute_sci();
 }
 
 # Compute Sum of Pairs scoring for an alignment
@@ -140,16 +167,55 @@ sub _csp_hash {
   $self->_csp_hash_writer(\%csp);
 }
 
+sub _hamming {
+  my $self = shift;
+  my $this_function = (caller(0))[3];
+  my $hamming = -1;
+  croak "ERROR [$this_function] cannot compute Hamming distance for $self->next_aln->num_sequences sequences"
+    if ($self->next_aln->num_sequences != 2);
 
-#sub _get_alen {
-#  my $self = shift;
-#  $self->alen($self->next_aln->length());
-#}
+  my $aln =  $self->next_aln->select_noncont((1,2));
 
-#sub _get_nrseq {
-#  my $self = shift;
-#  $self->nrseq($self->next_aln->num_sequences());
-#}
+  # compute Hamming distance of the aligned sequences, replacing gaps with Ns
+  my $alnN = dclone($aln);
+  croak("ERROR [$this_function] cannot replace gaps with Ns")
+    unless ($alnN->map_chars('-','N') == 1);
+  my $seq1 = $alnN->get_seq_by_pos(1)->seq;
+  my $seq2 = $alnN->get_seq_by_pos(2)->seq;
+  croak "ERROR [$this_function] sequence length differs"
+    unless(length($seq1)==length($seq2));
+  my $hammingN = ($seq1 ^ $seq2) =~ tr/\001-\255//;
+  $self->hammingdistN($hammingN);
+}
+
+sub _compute_sci {
+  my $self = shift;
+	my $this_function = (caller(0))[3];
+  my ($aln,$sci, $amfe, $avmfe, $afc, $cs);
+	my @aln=();
+  $aln = $self->next_aln();
+  my $nrseq = 0;
+  my $sum = 0;
+  # Extract sequences and check values for the alignment column $pos
+  foreach my $seqs ($aln->each_seq) {
+    my $seq = $seqs->seq;
+    my $id = $seqs->id;
+    push @aln,$seq;
+    my $fc= new RNA::fold_compound($seq); # compute invididual MFEs
+    my ($ss,$mfe) = $fc->mfe();
+    #print ">$id\n$seq\n$ss ($mfe)\n---\n";
+    $nrseq++;
+    $sum += $mfe;
+  }
+  #print "$nrseq sequences\n";
+  $avmfe = $sum/$nrseq;
+  $afc =  new RNA::fold_compound(\@aln);
+  ($cs,$amfe) = $afc->mfe(); #alifold consensus mfe
+  $self->sci($amfe/$avmfe);
+  #print "selfcomputed SCI: ".$self->sci."\n";# ($amfe / $avmfe)\n";
+  return ($cs,$sci);
+}
+
 
 no Moose;
 

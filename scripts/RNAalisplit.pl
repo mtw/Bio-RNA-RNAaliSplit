@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-04-24 01:07:23 mtw>
+# Last changed Time-stamp: <2020-02-16 06:48:22 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -15,6 +15,7 @@ use Bio::RNA::RNAaliSplit::WrapRNAz;
 use Bio::RNA::RNAaliSplit::WrapRscape;
 use Bio::RNA::RNAaliSplit::WrapRNAalifold;
 use Bio::RNA::RNAaliSplit::WrapAnalyseDists;
+use Bio::RNA::RNAaliSplit::AliFeature;
 use Getopt::Long qw( :config posix_default bundling no_ignore_case );
 use Data::Dumper;
 use Pod::Usage;
@@ -241,9 +242,8 @@ sub make_distance_matrix {
   # build distance matrix based on pairwise alignments
   print STDERR "Constructing distance matrix based on pairwise alignments ...\n";
   foreach my $ali (@pw_alns){
-    my $pw_aso = Bio::RNA::RNAaliSplit->new(ifile => $ali,
-					    format => "ClustalW",
-					    odir => $od);
+    my $pw_aso = Bio::RNA::RNAaliSplit::AliFeature->new(ifile => $ali,
+					    format => "ClustalW");
     my ($i,$j) = sort split /_/, $pw_aso->ifilebn;
 
     $dHn = $pw_aso->hammingdistN;
