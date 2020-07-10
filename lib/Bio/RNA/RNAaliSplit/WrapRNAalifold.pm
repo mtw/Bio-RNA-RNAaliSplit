@@ -27,6 +27,14 @@ has 'basename' => (
 		   documentation => q(Set this to override output basename),
 		  );
 
+has 'id' => (
+	     is => 'rw',
+	     isa => 'Str',
+	     predicate => 'has_id',
+	     documentation => q(Alignment ID),
+	    );
+
+
 has 'ribosum' => (
 		  is => 'rw',
 		  isa => 'Num',
@@ -190,17 +198,29 @@ sub _parse_rnaalifold {
   my @buffer=split(/^/, $out);
 
   foreach my $i (0..$#buffer){
-    next unless ($i == 1); # just parse consensus structure
-    unless ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s*(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(-?\d+\.\d+)\]/){
+    chomp($buffer[$i]);
+    if ($buffer[$i] =~ m/^>/){ # alifold.out has alignment ID
+      my $id = $buffer[$i];
+      $id =~ s/>//g;
+      $self->id($id);
+      next;
+    }
+    elsif ($buffer[$i] =~ m/^[AUGC_]/){ # consensus sequence
+      next;
+    }
+    elsif ($buffer[$i] =~ m/([\(\)\.]+)\s+\(\s*(-?\d+\.\d+)\s+=\s+(-?\d+\.\d+)\s+\+\s+(-?\d+\.\d+)\)\s+\[sci\s+=\s+(-?\d+\.\d+)\]/){ # consensus structure / energy / sci
+      $self->consensus_struc($1);
+      $self->consensus_mfe($2);
+      $self->consensus_energy($3);
+      $self->consensus_covar_terms($4);
+      $self->sci($5);
+      last;
+    }
+    else {
+      print Dumper($self);
       carp "ERROR [$this_function]  cannot parse RNAalifold output:";
       croak $self->ifile.":\n$buffer[$i]";
     }
-    $self->consensus_struc($1);
-    $self->consensus_mfe($2);
-    $self->consensus_energy($3);
-    $self->consensus_covar_terms($4);
-    $self->sci($5);
-    last;
   }
 }
 
