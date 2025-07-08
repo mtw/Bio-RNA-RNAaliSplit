@@ -16,6 +16,7 @@ use Moose;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
+use File::Temp ();
 #use diagnostics;
 
 my ($rnaalifold,$oodir);
@@ -131,6 +132,8 @@ sub run_rnaalifold {
   my $this_function = (caller(0))[3];
   my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$stk_fn);
   my ($alirnaps,$alidotps_fn,$alidotps,$alifoldstk);
+  my $tmpdir_o = File::Temp->newdir( DIR => $oodir );
+  my $tmpdir = $tmpdir_o->dirname;
   my $tag = "";
   if ($self->has_ribosum){$tag = ".risobum"}
   if ($self->has_basename){
@@ -153,11 +156,11 @@ sub run_rnaalifold {
     $alirnaps_fn = $tag."alirna.ps";
     $alidotps_fn = $tag."alidot.ps";
   }
-  $out = file($oodir,$out_fn); # RNAalifold stdout
-  $alnps = file($oodir,$alnps_fn); # RNAalifold aln.ps
-  $alirnaps = file($oodir,$alirnaps_fn); # RNAalifold alirna.ps
-  $alidotps = file($oodir,$alidotps_fn); # RNAalifold alidot.ps
-  $alifoldstk = file($oodir,$stk_fn); # RNAalifold generated Stockholm file with new CS
+  $out = file($tmpdir,$out_fn); # RNAalifold stdout
+  $alnps = file($tmpdir,$alnps_fn); # RNAalifold aln.ps
+  $alirnaps = file($tmpdir,$alirnaps_fn); # RNAalifold alirna.ps
+  $alidotps = file($tmpdir,$alidotps_fn); # RNAalifold alidot.ps
+  $alifoldstk = file($tmpdir,$stk_fn); # RNAalifold generated Stockholm file with new CS
 
   open my $fh, ">", $out;
   my $alifold_options = " --aln --color -p --sci --aln-stk ";
@@ -167,7 +170,7 @@ sub run_rnaalifold {
   if ($self->has_sscons){$alifold_options.=" --SS_cons "}
   my $cmd = $rnaalifold.$alifold_options.$self->ifile;
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 0 );
+    run( command => $cmd, verbose => 0, cwd => $tmpdir );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rnaalifold unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
@@ -184,11 +187,6 @@ sub run_rnaalifold {
 
   $self->_parse_rnaalifold($stdout_buffer);
   $self->alignment_stk($alifoldstk);
-  rename "aln.ps", $alnps;
-  rename "alirna.ps", $alirnaps;
-  rename "alidot.ps", $alidotps;
-  rename "RNAalifold_results.stk", $alifoldstk;
-  unlink "alifold.out";
 }
 
 # parse RNAalifold output
