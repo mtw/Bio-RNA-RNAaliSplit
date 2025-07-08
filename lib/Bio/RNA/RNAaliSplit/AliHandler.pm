@@ -9,7 +9,7 @@ use Moose;
 use Bio::RNA::RNAaliSplit::Subtypes;
 use namespace::autoclean;
 use Data::Dumper;
-use diagnostics;
+use warnings;
 use version; our $VERSION = qv('0.11');
 
 has 'format' => (
