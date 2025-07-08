@@ -9,7 +9,7 @@ package Bio::RNA::RNAaliSplit::AliFeature;
 use Moose;
 use namespace::autoclean;
 use version; our $VERSION = qv('0.11');
-use diagnostics;
+use warnings;
 use Data::Dumper;
 use Storable 'dclone';
 use Carp;

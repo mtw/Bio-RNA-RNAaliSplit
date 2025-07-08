@@ -14,7 +14,7 @@ use Path::Class;
 use File::Basename;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
-use diagnostics;
+use warnings;
 
 extends 'Bio::RNA::RNAaliSplit::AliHandler';
 
