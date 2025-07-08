@@ -57,7 +57,9 @@ sub BUILD {
 
     # dump ifile as aln and stk in ClustalW format to odir/input
     my $iodir = $self->odir->subdir('input');
-    mkdir($iodir);
+    my @created = make_path($iodir, {error => \my $err});
+    croak "ERROR [$this_function] could not create output directory $iodir"
+      if (@$err);
     my $ialnfile = file($iodir,$self->ifilebn.".aln");
     my $istkfile = file($iodir,$self->ifilebn.".stk");
     my $alnio = Bio::AlignIO->new(-file   => ">$ialnfile",
@@ -89,7 +91,9 @@ sub dump_subalignment {
   my $ids = join "_", @$what;
   unless (defined($alipathsegment)){$alipathsegment = "tmp"}
   my $oodir = $self->odir->subdir($alipathsegment);
-  mkdir($oodir);
+  my @created = make_path($oodir, {error => \my $err});
+  croak "ERROR [$this_function] could not create output directory $oodir"
+    if (@$err);
 
   # create info file
   my $oinfofile = file($oodir,$token.".info");
