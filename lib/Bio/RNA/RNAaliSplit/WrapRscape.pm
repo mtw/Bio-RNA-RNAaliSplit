@@ -16,6 +16,7 @@ use Moose;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
+use File::Temp ();
 
 my ($rscape,$oodir);
 my $exe = "R-scape";
@@ -200,6 +201,8 @@ sub run_rscape {
   my $this_function = (caller(0))[3];
   my ($out_fn,$sout_fn,$out,$sout,$sum);
   my ($rscape_out,$rscape_sout,$rscape_sum);
+  my $tmpdir_o = File::Temp->newdir( DIR => $oodir );
+  my $tmpdir = $tmpdir_o->dirname;
   my $tag = "";
   if ($self->has_statistic){$tag = ".".$self->statistic};
 
@@ -215,19 +218,19 @@ sub run_rscape {
     $out_fn  = $tag."rscape.out";
     $sout_fn = $tag."rscape.sorted.out";
   }
-  $out  = file($oodir,$out_fn);  # R-scape stdout
-  $sout = file($oodir,$sout_fn); # R-scape sorted stdout
+  $out  = file($tmpdir,$out_fn);  # R-scape stdout
+  $sout = file($tmpdir,$sout_fn); # R-scape sorted stdout
 
-  $rscape_out = "rscape.out";
+  $rscape_out = $out_fn;
   $rscape_sout = $rscape_out.".sorted";
 
-  my $rscape_options = " -o $rscape_out --rna --outdir $oodir ";
+  my $rscape_options = " -o $rscape_out --rna --outdir $tmpdir ";
   if ($self->has_nofigures && $self->nofigures == 1){$rscape_options.=" --nofigures "};
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
   my $cmd = $rscape.$rscape_options.$self->ifile;
 
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 0 );
+    run( command => $cmd, verbose => 0, cwd => $tmpdir );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rscape unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
@@ -236,10 +239,7 @@ sub run_rscape {
     croak $!;
   }
 
-  $self->_parse_rscape($rscape_out);
-
-  rename $rscape_out, $out;
-  rename $rscape_sout, $sout;
+  $self->_parse_rscape($out);
 }
 
 # parse R-scape output
