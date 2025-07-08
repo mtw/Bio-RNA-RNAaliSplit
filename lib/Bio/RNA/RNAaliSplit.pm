@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2020-02-16 05:27:46 mtw>
+# Last changed Time-stamp: <2025-07-08 13:34:06 mtw>
 
 # Bio::RNA::RNAaliSplit.pm: Handler for horizontally splitting alignments
 
@@ -37,6 +37,7 @@ with 'FileDirUtil';
 sub BUILD {
     my $self = shift;
     my $this_function = (caller(0))[3];
+    my @created = ();
     confess "ERROR [$this_function] \$self->ifile not available"
       unless ($self->has_ifile);
     $self->alignment({-file => $self->ifile,
@@ -50,16 +51,16 @@ sub BUILD {
       my $odir_name = "as";
       $self->odir( [$self->ifile->dir,$odir_name] );
     }
-    my @created = make_path($self->odir, {error => \my $err});
+    @created = make_path($self->odir, {error => \my $err1});
     confess "ERROR [$this_function] could not create output directory $self->odir"
-      if (@$err);
+      if (@$err1);
     $self->set_ifilebn;
 
     # dump ifile as aln and stk in ClustalW format to odir/input
     my $iodir = $self->odir->subdir('input');
-    my @created = make_path($iodir, {error => \my $err});
+    @created = make_path($iodir, {error => \my $err2});
     croak "ERROR [$this_function] could not create output directory $iodir"
-      if (@$err);
+      if (@$err2);
     my $ialnfile = file($iodir,$self->ifilebn.".aln");
     my $istkfile = file($iodir,$self->ifilebn.".stk");
     my $alnio = Bio::AlignIO->new(-file   => ">$ialnfile",
