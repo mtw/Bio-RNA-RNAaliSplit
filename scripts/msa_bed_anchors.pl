@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2019-04-23 22:34:00 mtw>
+# Last changed Time-stamp: <2025-07-08 14:47:39 mtw>
 # -*-CPerl-*-
 #
 # Create BED6 anchors for columns in a multiple sequence alignment
@@ -89,9 +89,7 @@ foreach my $c (@regions){
       unless ($loc->valid_Location);
     croak "[ISSUE] column $c is a gap (type IN-BETWEEN) in sequence $id"
       if ($loc->location_type() eq "IN-BETWEEN");
-    # print Dumper ($loc);
     my $start = $loc->start;
-    #    print "$id $start\n";
     my $FeatureIntervalN = join "\t", ($id, $start-1, $start, $anchor_name);
     print $out $FeatureIntervalN."\n";
   }
