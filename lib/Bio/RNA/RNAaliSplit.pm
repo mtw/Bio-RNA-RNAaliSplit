@@ -16,7 +16,7 @@ use IPC::Cmd qw(can_run run);
 #use Bio::AlignIO;
 use Storable 'dclone';
 use File::Path qw(make_path);
-use diagnostics;
+use warnings;
 
 extends 'Bio::RNA::RNAaliSplit::AliHandler';
 

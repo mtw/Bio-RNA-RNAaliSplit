@@ -33,7 +33,6 @@ my $nofigures = 0;
 my $outdir = "eval_result";
 my $stat = "GTp";
 my $have_logfile=0;
-use diagnostics;
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless

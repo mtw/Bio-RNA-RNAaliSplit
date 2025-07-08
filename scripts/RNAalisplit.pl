@@ -22,7 +22,6 @@ use Path::Class;
 use File::Basename;
 use Carp;
 use RNA;
-use diagnostics;
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 #^^^^^^^^^^ Variables ^^^^^^^^^^^#
