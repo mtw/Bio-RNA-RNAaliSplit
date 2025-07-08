@@ -30,15 +30,17 @@ my $format = "ClustalW";
 my $show_version = 0;
 my ($id,$alifile,$columns,$anchor_name);
 my $anchor_nr = 1;
+my $verbose = undef;
 my @regions=();
 
 Getopt::Long::config('no_ignore_case');
 pod2usage(-verbose => 1) unless GetOptions("aln|a=s"     => \$alifile,
 					   "columns|c=s" => \$columns,
-					   "version"     => sub{$show_version = 1},
-					   "man"         => sub{pod2usage(-verbose => 2)},
-					   "help|h"      => sub{pod2usage(1)}
-					   );
+                                           "version"     => sub{$show_version = 1},
+                                           "verbose|v"   => sub{$verbose = 1},
+                                           "man"         => sub{pod2usage(-verbose => 2)},
+                                           "help|h"      => sub{pod2usage(1)}
+                                           );
 
 if ($show_version == 1){
   print "msa_bed_anchors.pl $VERSION\n";
@@ -55,7 +57,7 @@ unless (-f $alifile){
 croak "[ERROR] must provide a comman-separated list to --columns|-c option"
   unless (scalar(@regions) >= 1);
 foreach (@regions){
-  print ">>$_<<\n";
+  print ">>$_<<\n" if (defined $verbose);
   unless (/^\d+$/){
     unless (/^\d+\-\d+$/){
       croak "[ERROR] argument $_ of --columns|-c is not a (int-int) region";
@@ -66,8 +68,7 @@ foreach (@regions){
     croak "[ERROR] argument $_ of --columns|-c is not a int number"
   }
 }
-
-print Dumper(\@regions);
+print Dumper(\@regions) if (defined $verbose);
 
 my $input_AlignIO = Bio::AlignIO->new(-file => $alifile,
 				      -format => $format,
@@ -144,6 +145,10 @@ length in the output BED file.
 =item B<--version>
 
 Show msa_bed_anchors.pl version and exit
+
+=item B<--verbose|-v>
+
+Enable verbose output
 
 =back
 
