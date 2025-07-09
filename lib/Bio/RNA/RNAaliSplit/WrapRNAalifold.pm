@@ -16,6 +16,7 @@ use Moose;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
+use File::Temp qw(tempdir);
 
 my ($rnaalifold,$oodir);
 
@@ -165,8 +166,10 @@ sub run_rnaalifold {
   if ($self->has_ribosum){$alifold_options.=" -r "}
   if ($self->has_sscons){$alifold_options.=" --SS_cons "}
   my $cmd = $rnaalifold.$alifold_options.$self->ifile;
+
+  my $tmpdir = tempdir( DIR => $oodir, CLEANUP => 1 );
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 0 );
+    run( command => $cmd, verbose => 0, cwd => $tmpdir );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rnaalifold unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
@@ -183,11 +186,11 @@ sub run_rnaalifold {
 
   $self->_parse_rnaalifold($stdout_buffer);
   $self->alignment_stk($alifoldstk);
-  rename "aln.ps", $alnps;
-  rename "alirna.ps", $alirnaps;
-  rename "alidot.ps", $alidotps;
-  rename "RNAalifold_results.stk", $alifoldstk;
-  unlink "alifold.out";
+  rename file($tmpdir,"aln.ps"), $alnps;
+  rename file($tmpdir,"alirna.ps"), $alirnaps;
+  rename file($tmpdir,"alidot.ps"), $alidotps;
+  rename file($tmpdir,"RNAalifold_results.stk"), $alifoldstk;
+  unlink file($tmpdir,"alifold.out");
 }
 
 # parse RNAalifold output
