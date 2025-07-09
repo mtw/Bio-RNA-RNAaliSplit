@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-08 14:07:41 mtw>
+# Last changed Time-stamp: <2025-07-08 18:05:28 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -131,7 +131,7 @@ sub run_rnaalifold {
   my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$stk_fn);
   my ($alirnaps,$alidotps_fn,$alidotps,$alifoldstk);
   my $tag = "";
-  if ($self->has_ribosum){$tag = ".risobum"}
+  if ($self->has_ribosum){$tag = ".ribosum"}
   if ($self->has_basename){
     $out_fn = $self->bn.$tag."."."alifold.out";
     $alnps_fn = $self->bn.$tag."."."aln.ps";
