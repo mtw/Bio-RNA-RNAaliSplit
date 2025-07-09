@@ -1,10 +1,10 @@
-# Bio-RNA-RNAaliSplit 0.11
+# Bio-RNA-RNAaliSplit 0.12
 
 Bio::RNA::RNAaliSplit is a distribution of Perl modules for splitting
 and deconvoluting structural RNA multiple sequence alignments
 (MSAs). Its primary purpose is to partition a MSA into subsets of
 sequences that have a common consensus structure which is different
-from the consesus structure of the other set. Another application is
+from the consensus structure of the other set. Another application is
 cleaning MSAs from sequence that do not fold into or prohibit folding
 into a common consensus structure.
 
@@ -22,7 +22,7 @@ http://www.tbi.univie.ac.at/RNA ). Specifically, the 'RNAalifold',
 'AnalyseDists' executables as well as the RNA Perl module shipped with
 ViennaRNA are used by RNAaliSplit.
 
-RNAz v2.1 (availale from http://www.tbi.univie.ac.at/~wash/RNAz) is
+RNAz v2.1 (available from http://www.tbi.univie.ac.at/~wash/RNAz) is
 used for classification of split subalignments.
 
 R-scape v1.2.2 or above is used for computing statistically
