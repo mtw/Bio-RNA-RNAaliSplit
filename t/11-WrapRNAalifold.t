@@ -36,8 +36,4 @@ ok ($ro1->has_consensus_mfe==1, "has consensus mfe");
 ok ($ro1->consensus_mfe=="-12.23", "consensus covariance terms");
 ok ($ro1->sci=="0.8205", "structure conservation index");
 
-todo "These are todo" => sub {
-    ok(0, "oops");
-};
-
 done_testing;
