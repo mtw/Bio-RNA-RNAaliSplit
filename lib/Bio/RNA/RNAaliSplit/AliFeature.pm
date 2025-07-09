@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2020-02-16 05:52:03 mtw>
+# Last changed Time-stamp: <2025-07-08 18:07:11 mtw>
 #
 #  Derive features of an alignment, in particular scores to compare
 #  different alignments of the same sequences
@@ -158,7 +158,7 @@ sub _csp_hash {
   for (my $j=1;$j<=$self->alen;$j++) { # loop over columns
     my $pstring;
     for (my $i=0;$i<$self->nrseq;$i++){ # loop over sequences
-      $pstring .= eval(${$self->_csp}[$i]->[$j]).":";
+      $pstring .= ${$self->_csp}[$i]->[$j] . ":";
     }
     #print ">> $pstring <<\n";
     unless (defined $csp{$pstring}){ $csp{$pstring}=1;}
