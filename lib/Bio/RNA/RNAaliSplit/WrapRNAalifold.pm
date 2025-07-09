@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-09 20:56:03 mtw>
+# Last changed Time-stamp: <2025-07-09 22:32:41 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -122,7 +122,7 @@ sub BUILD {
   }
   $oodir = $self->odir->subdir("alifold");
   my @created = make_path($oodir, {error => \my $err});
-  confess "ERROR [$this_function] could not create output directory $self->oodir"
+  confess "ERROR [$this_function] could not create output directory $oodir"
     if (@$err);
   $self->set_ifilebn;
   $self->run_rnaalifold();

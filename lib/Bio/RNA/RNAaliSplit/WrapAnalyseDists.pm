@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-08-25 19:14:20 mtw>
+# Last changed Time-stamp: <2025-07-09 22:31:37 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapAnalyseDists.pm: Wrapper for computing
 # split decompositions
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapAnalyseDists;
 
-use version; our $VERSION = qv('0.11');
+use version; our $VERSION = qv('0.12');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -18,7 +18,6 @@ use Array::Set qw(set_diff);
 use Digest::MD5 qw(md5_base64);
 use Path::Class;
 use File::Path qw(make_path);
-#use diagnostics;
 
 my ($analysedists,$oodir);
 my %sets = ();
@@ -70,7 +69,7 @@ sub BUILD {
   }
   $oodir = $self->odir->subdir("analysedists");
   my @created = make_path($oodir, {error => \my $err});
-  confess "ERROR [$this_function] could not create output directory $self->oodir"
+  confess "ERROR [$this_function] could not create output directory $oodir"
       if (@$err);
   $self->dim( $self->_get_dim() );
 

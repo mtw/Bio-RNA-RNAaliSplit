@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-08-25 19:51:47 mtw>
+# Last changed Time-stamp: <2025-07-09 22:33:13 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
-use version; our $VERSION = qv('0.11');
+use version; our $VERSION = qv('0.12');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -174,7 +174,7 @@ sub BUILD {
   }
   $oodir = $self->odir->subdir("rscape");
   my @created = make_path($oodir, {error => \my $err});
-  confess "ERROR [$this_function] could not create output directory $self->oodir"
+  confess "ERROR [$this_function] could not create output directory $oodir"
     if (@$err);
   $self->set_ifilebn;
   $self->_count_seq();
