@@ -17,6 +17,7 @@ use Path::Class;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
 use File::Temp qw(tempdir);
+use File::pushd;
 
 my ($rnaalifold,$oodir);
 
@@ -132,6 +133,10 @@ sub run_rnaalifold {
   my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$stk_fn);
   my ($alirnaps,$alidotps_fn,$alidotps,$alifoldstk);
   my $tag = "";
+  my $ifile_abs_path = $self->ifile->absolute->stringify;
+  #my $tmpdir = tempdir( DIR => $oodir, CLEANUP => 1 );
+  my $tmpdir = tempdir( DIR => $oodir );
+  my $dir = pushd($tmpdir);
   if ($self->has_ribosum){$tag = ".ribosum"}
   if ($self->has_basename){
     $out_fn = $self->bn.$tag."."."alifold.out";
@@ -153,11 +158,12 @@ sub run_rnaalifold {
     $alirnaps_fn = $tag."alirna.ps";
     $alidotps_fn = $tag."alidot.ps";
   }
-  $out = file($oodir,$out_fn); # RNAalifold stdout
-  $alnps = file($oodir,$alnps_fn); # RNAalifold aln.ps
-  $alirnaps = file($oodir,$alirnaps_fn); # RNAalifold alirna.ps
-  $alidotps = file($oodir,$alidotps_fn); # RNAalifold alidot.ps
-  $alifoldstk = file($oodir,$stk_fn); # RNAalifold generated Stockholm file with new CS
+  $out = file($tmpdir,$out_fn); # RNAalifold stdout
+  $alnps = file($tmpdir,$alnps_fn); # RNAalifold aln.ps
+  $alirnaps = file($tmpdir,$alirnaps_fn); # RNAalifold alirna.ps
+  $alidotps = file($tmpdir,$alidotps_fn); # RNAalifold alidot.ps
+  $alifoldstk = file($tmpdir,$stk_fn); # RNAalifold generated Stockholm file with new CS
+
 
   open my $fh, ">", $out;
   my $alifold_options = " --aln --color -p --sci --aln-stk ";
@@ -165,11 +171,10 @@ sub run_rnaalifold {
   $alifold_options .= " -f ".$self->format." ";
   if ($self->has_ribosum){$alifold_options.=" -r "}
   if ($self->has_sscons){$alifold_options.=" --SS_cons "}
-  my $cmd = $rnaalifold.$alifold_options.$self->ifile;
+  my $cmd = $rnaalifold.$alifold_options.$ifile_abs_path;
 
-  my $tmpdir = tempdir( DIR => $oodir, CLEANUP => 1 );
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 0, cwd => $tmpdir );
+    run( command => $cmd, verbose => 1 );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rnaalifold unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
@@ -186,11 +191,11 @@ sub run_rnaalifold {
 
   $self->_parse_rnaalifold($stdout_buffer);
   $self->alignment_stk($alifoldstk);
-  rename file($tmpdir,"aln.ps"), $alnps;
+  rename "aln.ps",  $alnps;
   rename file($tmpdir,"alirna.ps"), $alirnaps;
   rename file($tmpdir,"alidot.ps"), $alidotps;
   rename file($tmpdir,"RNAalifold_results.stk"), $alifoldstk;
-  unlink file($tmpdir,"alifold.out");
+ # unlink file($tmpdir,"alifold.out");
 }
 
 # parse RNAalifold output
