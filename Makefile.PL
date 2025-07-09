@@ -63,6 +63,7 @@ WriteMakefile(
 				     "Test::Script" => '1.25',
 				     "FileDirUtil" => '0',
 				     "namespace::autoclean" => '0',
+				     "File::pushd" => '0',
 				    },
 	      'EXE_FILES'        => [ map { "scripts/$_" } @scripts ],
 	      'META_MERGE'       => {

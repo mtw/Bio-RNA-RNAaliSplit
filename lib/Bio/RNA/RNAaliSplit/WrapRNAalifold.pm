@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-08 18:05:28 mtw>
+# Last changed Time-stamp: <2025-07-09 20:56:03 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -9,7 +9,7 @@
 
 package Bio::RNA::RNAaliSplit::WrapRNAalifold;
 
-use version; our $VERSION = qv('0.11');
+use version; our $VERSION = qv('0.12');
 use Carp;
 use Data::Dumper;
 use Moose;
@@ -18,6 +18,7 @@ use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
 use File::Temp qw(tempdir);
 use File::pushd;
+use Cwd;
 
 my ($rnaalifold,$oodir);
 
@@ -133,10 +134,23 @@ sub run_rnaalifold {
   my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$stk_fn);
   my ($alirnaps,$alidotps_fn,$alidotps,$alifoldstk);
   my $tag = "";
+  my $tmpprefix = "";
   my $ifile_abs_path = $self->ifile->absolute->stringify;
-  #my $tmpdir = tempdir( DIR => $oodir, CLEANUP => 1 );
-  my $tmpdir = tempdir( DIR => $oodir );
+
+  if ($self->has_basename){
+    $tmpprefix =  $self->bn."_";
+  }
+  elsif ($self->has_ifilebn){
+    $tmpprefix =  $self->ifilebn."_";
+  }
+  else {
+    $tmpprefix = "XXXX_";
+  }
+  $tmpprefix .= "XXXXX";
+  my $tmpdir = tempdir( $tmpprefix, DIR => $oodir );
   my $dir = pushd($tmpdir);
+  my $cwd = getcwd();
+
   if ($self->has_ribosum){$tag = ".ribosum"}
   if ($self->has_basename){
     $out_fn = $self->bn.$tag."."."alifold.out";
@@ -158,14 +172,14 @@ sub run_rnaalifold {
     $alirnaps_fn = $tag."alirna.ps";
     $alidotps_fn = $tag."alidot.ps";
   }
-  $out = file($tmpdir,$out_fn); # RNAalifold stdout
-  $alnps = file($tmpdir,$alnps_fn); # RNAalifold aln.ps
-  $alirnaps = file($tmpdir,$alirnaps_fn); # RNAalifold alirna.ps
-  $alidotps = file($tmpdir,$alidotps_fn); # RNAalifold alidot.ps
-  $alifoldstk = file($tmpdir,$stk_fn); # RNAalifold generated Stockholm file with new CS
+  $out = file($out_fn); # RNAalifold stdout
+  $alnps = file($alnps_fn); # RNAalifold aln.ps
+  $alirnaps = file($alirnaps_fn); # RNAalifold alirna.ps
+  $alidotps = file($alidotps_fn); # RNAalifold alidot.ps
+  $alifoldstk = file($stk_fn); # RNAalifold generated Stockholm file with new CS
 
-
-  open my $fh, ">", $out;
+  open my $fh, ">", $out
+    or croak "ERROR: cannot open '$out' for writing: $!\n";
   my $alifold_options = " --aln --color -p --sci --aln-stk ";
   #$alifold_options .= " --cfactor 0.6 --nfactor 0.5 ";
   $alifold_options .= " -f ".$self->format." ";
@@ -174,7 +188,7 @@ sub run_rnaalifold {
   my $cmd = $rnaalifold.$alifold_options.$ifile_abs_path;
 
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 1 );
+    run( command => $cmd, verbose => 0 );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rnaalifold unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
@@ -185,17 +199,17 @@ sub run_rnaalifold {
   my $stdout_buffer = join "", @$stdout_buf;
   my @rnaalifoldout = split /\n/, $stdout_buffer;
   foreach my $line( @rnaalifoldout){
-    print $fh $line,"\n";
+    print $fh $line," MMM\n";
   }
   close($fh);
 
   $self->_parse_rnaalifold($stdout_buffer);
   $self->alignment_stk($alifoldstk);
   rename "aln.ps",  $alnps;
-  rename file($tmpdir,"alirna.ps"), $alirnaps;
-  rename file($tmpdir,"alidot.ps"), $alidotps;
-  rename file($tmpdir,"RNAalifold_results.stk"), $alifoldstk;
- # unlink file($tmpdir,"alifold.out");
+  rename "alirna.ps", $alirnaps;
+  rename "alidot.ps", $alidotps;
+  rename "RNAalifold_results.stk", $alifoldstk;
+  unlink "alifold.out";
 }
 
 # parse RNAalifold output
