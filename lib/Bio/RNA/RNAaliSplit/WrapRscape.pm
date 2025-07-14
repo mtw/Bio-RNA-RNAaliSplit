@@ -1,11 +1,11 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-09 22:33:13 mtw>
+# Last changed Time-stamp: <2025-07-10 17:02:43 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
 # wrapper for R-scape
 #
-# Requires R-scape v1.2.2 or above available to the Perl interpreter.
+# Requires R-scape v2 or above or above available to the Perl interpreter.
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
@@ -31,7 +31,7 @@ has 'statistic' => (
 		    is => 'rw',
 		    isa => 'Str',
 		    predicate => 'has_statistic',
-		    default => 'RAFS',
+		    default => 'GTp',
 		    documentation => q(Covariation statistic),
 		   );
 has 'cseq' => (
@@ -137,6 +137,13 @@ has 'nofigures' => (
 		    documentation => q(Turn off all image procudtion by R-scape),
 		   );
 
+has 'naive' => (
+		    is => 'rw',
+		    isa => 'Int',
+		    predicate => 'has_naive',
+		    documentation => q(Turn on R-scape naive mode),
+		   );
+
 has 'sigBP' => ( # significantly covarying base pairs
 		is => 'rw',
 		isa => 'ArrayRef',
@@ -221,13 +228,14 @@ sub run_rscape {
   $rscape_out = "rscape.out";
   $rscape_sout = $rscape_out.".sorted";
 
-  my $rscape_options = " -o $rscape_out --rna --outdir $oodir ";
+  my $rscape_options = " --outname $rscape_out --rna --outdir $oodir ";
   if ($self->has_nofigures && $self->nofigures == 1){$rscape_options.=" --nofigures "};
+  if ($self->has_naive && $self->naive == 1){$rscape_options.=" --naive "};
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
   my $cmd = $rscape.$rscape_options.$self->ifile;
 
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 0 );
+    run( command => $cmd, verbose => 2 );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rscape unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
