@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-10 17:02:43 mtw>
+# Last changed Time-stamp: <2025-07-14 16:53:09 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
@@ -16,6 +16,7 @@ use Moose;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
+use Cwd;
 
 my ($rscape,$oodir);
 my $exe = "R-scape";
@@ -181,7 +182,7 @@ sub BUILD {
   }
   $oodir = $self->odir->subdir("rscape");
   my @created = make_path($oodir, {error => \my $err});
-  confess "ERROR [$this_function] could not create output directory $oodir"
+  confess "ERROR [$this_function] could not create output directory $$oodir"
     if (@$err);
   $self->set_ifilebn;
   $self->_count_seq();
@@ -206,9 +207,14 @@ sub run_rscape {
   my $self = shift;
   my $this_function = (caller(0))[3];
   my ($out_fn,$sout_fn,$out,$sout,$sum);
-  my ($rscape_out,$rscape_sout,$rscape_sum);
+  my ($rscape_out_bn,$rscape_out,$rscape_sout,$rscape_sum);
   my $tag = "";
   if ($self->has_statistic){$tag = ".".$self->statistic};
+
+
+  my $cwd = getcwd(); # or cwd()
+  #print "Current working directory is: $cwd\n";
+  #print Dumper($oodir);
 
   if ($self->has_basename){
     $out_fn  = $self->basename.$tag."."."rscape.out";
@@ -225,17 +231,17 @@ sub run_rscape {
   $out  = file($oodir,$out_fn);  # R-scape stdout
   $sout = file($oodir,$sout_fn); # R-scape sorted stdout
 
-  $rscape_out = "rscape.out";
-  $rscape_sout = $rscape_out.".sorted";
+  $rscape_out_bn = "rscape.out";
+  $rscape_sout = $rscape_out_bn.".sorted";
 
-  my $rscape_options = " --outname $rscape_out --rna --outdir $oodir ";
+  my $rscape_options = " --outname $rscape_out_bn --rna --outdir $oodir ";
   if ($self->has_nofigures && $self->nofigures == 1){$rscape_options.=" --nofigures "};
   if ($self->has_naive && $self->naive == 1){$rscape_options.=" --naive "};
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
   my $cmd = $rscape.$rscape_options.$self->ifile;
 
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
-    run( command => $cmd, verbose => 2 );
+    run( command => $cmd, verbose => 0 );
   if( !$success ) {
     print STDERR "ERROR [$this_function] Call to $rscape unsuccessful\n";
     print STDERR "ERROR: $cmd\n";
@@ -244,7 +250,16 @@ sub run_rscape {
     croak $!;
   }
 
-  $self->_parse_rscape($rscape_out);
+  open my $fh, ">", $out
+    or croak "ERROR: cannot open '$out' for writing: $!\n";
+  my $stdout_buffer = join "", @$stdout_buf;
+  my @out_buffer = split /\n/, $stdout_buffer;
+  foreach my $line( @out_buffer){
+    print $fh $line,"\n";
+  }
+  close($fh);
+
+  $self->_parse_rscape($stdout_buffer);
 
   rename $rscape_out, $out;
   rename $rscape_sout, $sout;
@@ -305,8 +320,8 @@ sub _parse_rscape {
     }
   }
   close ($file);
-  #carp "INFO: [$this_function] parse1:".eval($parse1);
-  #carp "INFO: [$this_function] parse2:".eval($parse2);
+  carp "INFO: [$this_function] parse1:".eval($parse1);
+  carp "INFO: [$this_function] parse2:".eval($parse2);
 
   if ($nosbp == 1){
     $self->status(1); # no significant basepairs
