@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-11 15:49:20 mtw>
+# Last changed Time-stamp: <2025-07-14 17:35:12 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -178,8 +178,6 @@ sub run_rnaalifold {
   $alidotps = file($alidotps_fn); # RNAalifold alidot.ps
   $alifoldstk = file($stk_fn); # RNAalifold generated Stockholm file with new CS
 
-  open my $fh, ">", $out
-    or croak "ERROR: cannot open '$out' for writing: $!\n";
   my $alifold_options = " --aln --color -p --sci --aln-stk ";
   #$alifold_options .= " --cfactor 0.6 --nfactor 0.5 ";
   $alifold_options .= " -f ".$self->format." ";
@@ -196,19 +194,23 @@ sub run_rnaalifold {
     print join "", @$full_buf;
     croak $!;
   }
+
+  open my $fh, ">", $out
+    or croak "ERROR: cannot open '$out' for writing: $!\n";
   my $stdout_buffer = join "", @$stdout_buf;
   my @rnaalifoldout = split /\n/, $stdout_buffer;
   foreach my $line( @rnaalifoldout){
-    print $fh $line," MMM\n";
+    print $fh $line,"\n";
   }
   close($fh);
   $self->_parse_rnaalifold($stdout_buffer);
+
   rename "aln.ps",  $alnps;
   rename "alirna.ps", $alirnaps;
   rename "alidot.ps", $alidotps;
   rename "RNAalifold_results.stk", $alifoldstk;
   unlink "alifold.out";
- # $alifoldstk = file($tmpdir,$alifoldstk);
+
   $self->alignment_stk(file($tmpdir,$alifoldstk));
 }
 
