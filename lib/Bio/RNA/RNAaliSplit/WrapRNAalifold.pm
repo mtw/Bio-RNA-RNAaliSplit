@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-14 17:35:12 mtw>
+# Last changed Time-stamp: <2025-07-15 14:04:00 mtw>
 
 # Bio::RNA::RNAaliSplit::WrapRNAalifold.pm: A versatile object-oriented
 # wrapper for RNAalifold
@@ -133,6 +133,7 @@ sub run_rnaalifold {
   my $this_function = (caller(0))[3];
   my ($out_fn,$out,$alnps_fn,$alnps,$alirnaps_fn,$stk_fn);
   my ($alirnaps,$alidotps_fn,$alidotps,$alifoldstk);
+  my ($tmpdir, $dir, $cwd);
   my $tag = "";
   my $tmpprefix = "";
   my $ifile_abs_path = $self->ifile->absolute->stringify;
@@ -147,9 +148,9 @@ sub run_rnaalifold {
     $tmpprefix = "XXXX_";
   }
   $tmpprefix .= "XXXXX";
-  my $tmpdir = tempdir( $tmpprefix, DIR => $oodir );
-  my $dir = pushd($tmpdir);
-  my $cwd = getcwd();
+  $tmpdir = tempdir( $tmpprefix, DIR => $oodir );
+  $dir = pushd($tmpdir);
+  $cwd = getcwd();
 
   if ($self->has_ribosum){$tag = ".ribosum"}
   if ($self->has_basename){
@@ -172,7 +173,7 @@ sub run_rnaalifold {
     $alirnaps_fn = $tag."alirna.ps";
     $alidotps_fn = $tag."alidot.ps";
   }
-  $out = file($out_fn); # RNAalifold stdout
+  $out = file($out_fn); # RNAalifold stdout produced inside tmpdir
   $alnps = file($alnps_fn); # RNAalifold aln.ps
   $alirnaps = file($alirnaps_fn); # RNAalifold alirna.ps
   $alidotps = file($alidotps_fn); # RNAalifold alidot.ps
