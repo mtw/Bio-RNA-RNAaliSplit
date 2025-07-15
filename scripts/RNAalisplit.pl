@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Last changed Time-stamp: <2025-07-11 15:50:14 mtw>
+# Last changed Time-stamp: <2025-07-15 16:31:44 mtw>
 # -*-CPerl-*-
 #
 # usage: RNAalisplit.pl -a myfile.aln
@@ -141,7 +141,6 @@ sub alisplit {
 							odir => $AlignSplitObject->odir,
 							format => 'C',
 							ribosum => $ribosum);
-  print Dumper($alifold);
   # run RNAz for the input alignment
   $rnaz = Bio::RNA::RNAaliSplit::WrapRNAz->new(ifile => $AlignSplitObject->alignment_aln,
 					       odir => $AlignSplitObject->odir);
