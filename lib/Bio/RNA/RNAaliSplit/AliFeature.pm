@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-08 18:07:11 mtw>
+# Last changed Time-stamp: <2025-07-15 15:38:23 mtw>
 #
 #  Derive features of an alignment, in particular scores to compare
 #  different alignments of the same sequences
@@ -8,7 +8,7 @@ package Bio::RNA::RNAaliSplit::AliFeature;
 
 use Moose;
 use namespace::autoclean;
-use version; our $VERSION = qv('0.11');
+use version; our $VERSION = qv('0.12');
 use warnings;
 use Data::Dumper;
 use Storable 'dclone';

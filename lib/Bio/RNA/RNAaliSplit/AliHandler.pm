@@ -1,5 +1,5 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2019-04-24 00:49:39 mtw>
+# Last changed Time-stamp: <2025-07-15 15:37:57 mtw>
 #
 # This a base class for handling alignment files in different formats
 
@@ -10,7 +10,7 @@ use Bio::RNA::RNAaliSplit::Subtypes;
 use namespace::autoclean;
 use Data::Dumper;
 use warnings;
-use version; our $VERSION = qv('0.11');
+use version; our $VERSION = qv('0.12');
 
 has 'format' => (
                  is => 'ro',
