@@ -14,18 +14,20 @@ BEGIN {
   my ($ro1,$ro2,$ro3);
   my $aln1 = dist_file('Bio-RNA-RNAaliSplit','aln/all.SL.SPOVG.stk');
   my $aln2 = dist_file('Bio-RNA-RNAaliSplit','aln/RF00050.part.stk');
-  my %arg1 = (ifile => $aln1, odir => ['t'], nofigures => 1);
+  my %arg1 = (ifile => $aln1, odir => ['t'], statistic => "RAFS", naive => 1, nofigures => 1);
   my %arg2 = (ifile => $aln1, odir => ['t'], statistic => "GTp" );
   my %arg3 = (ifile => $aln2, odir => ['t'], nofigures => 1, statistic => "GTp" );
 
   $ro1 = Bio::RNA::RNAaliSplit::WrapRscape->new(\%arg1);
-  note (Dumper($ro1));
+  print Dumper($ro1);
+
   ok($ro1->has_statistic==1,"has_statistic");
   ok($ro1->has_cseq==1,"has_cseq");
   ok($ro1->has_nseq==1,"has_nseq");
   ok($ro1->has_alen==1,"has_alen");
   ok($ro1->has_nbpairs==1,"has_nbpairs");
   ok($ro1->statistic eq "RAFS", "statistic");
+  ok($ro1->has_naive==1,"has_naive");
   ok($ro1->cseq=="9", "cseq");
   ok($ro1->nseq=="9", "nseq");
   ok($ro1->alen=="45", "alen");
@@ -79,7 +81,7 @@ BEGIN {
   ok($ro3->statistic eq "GTp", "statistic");
   ok($ro3->cseq=="99", "cseq");
   ok($ro3->nseq=="98", "nseq");
-  ok($ro3->alen=="139", "alen");
+  ok($ro3->alen=="150", "alen");
   ok($ro3->nbpairs=="23", "nbpairs");
   ok($ro3->evalue=="0.05", "evalue");
   ok($ro3->FP=="2", "FP");
@@ -90,4 +92,5 @@ BEGIN {
   ok($ro3->Fmeasure=="48.48", "Fmeasure");
   ok($ro3->status=="0", "status 0");
   done_testing;
+
 }
