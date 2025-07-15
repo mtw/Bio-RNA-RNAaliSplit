@@ -1,11 +1,17 @@
 # -*-CPerl-*-
-# Last changed Time-stamp: <2025-07-14 16:53:09 mtw>
+# Last changed Time-stamp: <2025-07-15 16:17:33 mtw>
 # place of birth: somewhere over Newfoundland
 
 # Bio::RNA::RNAaliSplit::WrapRscape.pm: A versatile object-oriented
 # wrapper for R-scape
 #
-# Requires R-scape v2 or above or above available to the Perl interpreter.
+# R-scape output files are created in a temporary directory below the
+# object's output directory and then moved to their final destination.
+# This avoids collisions when multiple instances run in the same
+# directory.
+#
+# Requires R-scape v2 or above or above available to the Perl
+# interpreter.
 
 package Bio::RNA::RNAaliSplit::WrapRscape;
 
@@ -16,6 +22,8 @@ use Moose;
 use Path::Class;
 use IPC::Cmd qw(can_run run);
 use File::Path qw(make_path);
+use File::Temp qw(tempdir);
+use File::pushd;
 use Cwd;
 
 my ($rscape,$oodir);
@@ -174,16 +182,29 @@ sub BUILD {
   my $this_function = (caller(0))[3];
   confess "ERROR [$this_function] \$self->ifile not available"
     unless ($self->has_ifile);
+
+  # locate R-scape executable
   $rscape = can_run($exe) or
     croak "ERROR [$this_function] $exe not found";
+
+  # set default output directory if none provided
   unless($self->has_odir){
     my $odir_name = "as";
     $self->odir( [$self->ifile->dir,$odir_name] );
   }
+
+  # enforce naive mode for specific statistics
+  if ($self->has_statistic
+      && $self->statistic =~ /^(?:RAF|RAFS|RAFp|RAFa|RAFSp|RAFSa)$/) {
+    $self->naive(1);
+  }
+
+  # prepare output subdirectory
   $oodir = $self->odir->subdir("rscape");
   my @created = make_path($oodir, {error => \my $err});
   confess "ERROR [$this_function] could not create output directory $$oodir"
     if (@$err);
+
   $self->set_ifilebn;
   $self->_count_seq();
   if ($self->cseq > 1){ $self->run_rscape() }
@@ -193,7 +214,8 @@ sub _count_seq {
   my $self = shift;
   my $this_function = (caller(0))[3];
   my $count = 0;
-  open my $stk, "<", $self->ifile or croak "ERROR [$this_function] Cannot open Stockholm file $self->ifile for reading";
+  open my $stk, "<", $self->ifile
+    or croak "ERROR [$this_function] Cannot open Stockholm file $self->ifile for reading";
   while (<$stk>){
     next if (/^#/);
     next if (/^\/\//);
@@ -208,13 +230,30 @@ sub run_rscape {
   my $this_function = (caller(0))[3];
   my ($out_fn,$sout_fn,$out,$sout,$sum);
   my ($rscape_out_bn,$rscape_out,$rscape_sout,$rscape_sum);
+  my ($tmpdir, $dir, $cwd);
   my $tag = "";
+  my $tmpprefix = '';
+  my $ifile_abs_path = $self->ifile->absolute->stringify;
   if ($self->has_statistic){$tag = ".".$self->statistic};
 
+  # work in a temporary directory inside odir to avoid file name clashes
+  if ($self->has_basename){
+    $tmpprefix = $self->bn."_";
+  }
+  elsif ($self->has_ifilebn){
+    $tmpprefix = $self->ifilebn."_";
+  }
+  else{
+    $tmpprefix = "XXXX_";
+  }
+  $tmpprefix .= "XXXXX";
+  $tmpdir = tempdir( $tmpprefix, DIR => $oodir );
+  my @created = make_path($tmpdir, {error => \my $err});
+  confess "ERROR [$this_function] could not create output directory $oodir"
+    if (@$err);
 
-  my $cwd = getcwd(); # or cwd()
-  #print "Current working directory is: $cwd\n";
-  #print Dumper($oodir);
+  $dir = pushd($tmpdir);
+  $cwd = getcwd();
 
   if ($self->has_basename){
     $out_fn  = $self->basename.$tag."."."rscape.out";
@@ -228,17 +267,18 @@ sub run_rscape {
     $out_fn  = $tag."rscape.out";
     $sout_fn = $tag."rscape.sorted.out";
   }
-  $out  = file($oodir,$out_fn);  # R-scape stdout
-  $sout = file($oodir,$sout_fn); # R-scape sorted stdout
+  $out  = file($out_fn);  # R-scape stdout
+  $sout = file($sout_fn); # R-scape sorted stdout
 
   $rscape_out_bn = "rscape.out";
-  $rscape_sout = $rscape_out_bn.".sorted";
+  $rscape_out  = file($rscape_out_bn); # produced inside tmpdir
+  $rscape_sout = file($rscape_out_bn.".sorted");
 
-  my $rscape_options = " --outname $rscape_out_bn --rna --outdir $oodir ";
+  my $rscape_options = " --outname $rscape_out_bn --rna --outdir . ";
   if ($self->has_nofigures && $self->nofigures == 1){$rscape_options.=" --nofigures "};
   if ($self->has_naive && $self->naive == 1){$rscape_options.=" --naive "};
   if ($self->has_statistic){$rscape_options.=" --".$self->statistic." "  }
-  my $cmd = $rscape.$rscape_options.$self->ifile;
+  my $cmd = $rscape.$rscape_options.$ifile_abs_path;
 
   my ( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
     run( command => $cmd, verbose => 0 );
@@ -266,7 +306,8 @@ sub run_rscape {
 }
 
 # parse R-scape output
-# canonical R-scape output is expected to look like this:
+# R-scape output is expected to look like this:
+#
 #  MSA myaln nseq 9 (9) alen 45 (45) avgid 79.51 (79.51) nbpairs 11 (11)
 #  contacts  11 (11 bpairs 11 wc bpairs)
 #  maxD      8.00
@@ -282,21 +323,22 @@ sub run_rscape {
 sub _parse_rscape {
   my ($self,$out) = @_;
   my $this_function = (caller(0))[3];
-  my @buffer = ();
+  my @buffer=split(/^/, $out);
   my $parse1 = 0;
   my $parse2 = 0;
   my $nosbp = 0;
-  open my $file, "<", $out or croak "ERROR: [$this_function] Cannot open file $out";
-  while(<$file>){
-    chomp;
-    if (m/^#\s+MSA\s+([a-zA-Z0-9_.|]+)\s+nseq\s+(\d+)\s+\(\d+\)\s+alen\s+(\d+)\s+\(\d+\)\s+avgid\s+(\d+\.\d+)\s+\(\d+\.\d+\)\s+nbpairs\s+(\d+)\s+\(\d+\)/g){
+
+  foreach my $i (0..$#buffer){
+    chomp($buffer[$i]);
+
+    if ($buffer[$i] =~ m/^#\s+MSA\s+([a-zA-Z0-9_.|]+)\s+nseq\s+(\d+)\s+\(\d+\)\s+alen\s+(\d+)\s+\(\d+\)\s+avgid\s+(\d+\.\d+)\s+\(\d+\.\d+\)\s+nbpairs\s+(\d+)\s+\(\d+\)/g){
       $self->nseq($2);
       $self->alen($3);
       $self->nbpairs($5);
       $parse1 = 1;
       next;
     }
-    if (m/^#\s+([a-zA-Z0-9]+)\s+(\d+\.\d+)\s+\[(\-?\d+\.\d+),(-?\d+\.\d+)\]\s+\[(\d+)\s+\|\s+(\d+)\s+(\d+)\s+(\d+)\s+\|\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\]/g){
+    if ($buffer[$i] =~ m/^#\s+([a-zA-Z0-9]+)\s+(\d+\.\d+)\s+\[(\-?\d+\.\d+),(-?\d+\.\d+)\]\s+\[(\d+)\s+\|\s+(\d+)\s+(\d+)\s+(\d+)\s+\|\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\]/g){
       $self->evalue($2);
       $self->FP($5);
       $self->TP($6);
@@ -308,20 +350,20 @@ sub _parse_rscape {
       $parse2 = 1;
       next;
     }
-    if (m/^\*\s+(\d+)\s+(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$/){
+    if ($buffer[$i] =~ m/^\*\s+(\d+)\s+(\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$/){
       my %bp = (i => $1,
 		j => $2,
 		score => $3,
 		evalue => $4);
       push @{$self->sigBP}, \%bp;
     }
-    if (m/^no significant pairs$/){
+    if ($buffer[$i] =~ m/^no significant pairs$/){
       $nosbp=1;
     }
   }
-  close ($file);
-  carp "INFO: [$this_function] parse1:".eval($parse1);
-  carp "INFO: [$this_function] parse2:".eval($parse2);
+
+  #carp "INFO: [$this_function] parse1:".eval($parse1);
+  #carp "INFO: [$this_function] parse2:".eval($parse2);
 
   if ($nosbp == 1){
     $self->status(1); # no significant basepairs
