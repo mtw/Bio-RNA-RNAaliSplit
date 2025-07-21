@@ -5,7 +5,7 @@ use IPC::Cmd qw(can_run);
 my @required = qw(AnalyseDists RNAalifold RNAz R-scape);
 my @missing  = grep { !can_run($_) } @required;
 
-BAIL_OUT('Missing required external tools: ' . join(', ', @missing))
+bail_out('Missing required external tools: ' . join(', ', @missing))
     if @missing;
 
 use ok 'RNA';
